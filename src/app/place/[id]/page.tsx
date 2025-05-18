@@ -5,16 +5,21 @@ import { useState } from "react";
 import useSWR from "swr";
 import { useParams } from "next/navigation";
 
-// API 呼び出しヘルパ
+type Review = {
+  id: number;
+  place_id: number;
+  rating: number;
+  comment: string;
+  created_at: string;
+};
+
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 async function getPlaceInfo(placeId: number) {
-  // Place ID から Universe ID を取得
   const uRes = await fetch(
     `https://apis.roblox.com/universes/v1/places/${placeId}/universe`
   );
   const { universeId } = await uRes.json();
-  // Universe ID からゲーム情報を取得
   const gRes = await fetch(
     `https://games.roblox.com/v1/games?universeIds=${universeId}`
   );
@@ -23,20 +28,17 @@ async function getPlaceInfo(placeId: number) {
 }
 
 export default function PlacePage() {
-  // params を useParams フックで取得
   const { id } = useParams() as { id: string };
   const placeId = Number(id);
 
-  // ゲーム情報とレビュー一覧を取得
   const { data: game } = useSWR(["game", placeId], () =>
     getPlaceInfo(placeId)
   );
-  const { data: reviews } = useSWR(
+  const { data: reviews } = useSWR<{ data: Review[] }>(
     `/api/reviews?placeId=${placeId}`,
     fetcher
   );
 
-  // 投稿フォーム用ステート
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState("");
 
@@ -48,13 +50,11 @@ export default function PlacePage() {
       body: JSON.stringify({ placeId, rating, comment }),
     });
     setComment("");
-    // キャッシュをクリアして再取得
     (await import("swr")).mutate(`/api/reviews?placeId=${placeId}`);
   };
 
   return (
     <main className="p-4 max-w-xl mx-auto">
-      {/* ゲーム情報 */}
       {game && (
         <div className="mb-6">
           <h2 className="text-2xl font-bold">{game.name}</h2>
@@ -66,7 +66,6 @@ export default function PlacePage() {
         </div>
       )}
 
-      {/* 投稿フォーム */}
       <form onSubmit={handleSubmit} className="mb-8">
         <label className="block mb-2">
           評価：
@@ -94,11 +93,10 @@ export default function PlacePage() {
         </button>
       </form>
 
-      {/* レビュー一覧 */}
       <section>
         <h3 className="text-lg font-semibold mb-2">レビュー一覧</h3>
         {reviews?.data?.length ? (
-          reviews.data.map((r: any) => (
+          reviews.data.map((r) => (
             <div key={r.id} className="mb-4 border-b pb-2">
               <div>{r.rating}★</div>
               <p>{r.comment}</p>
@@ -112,5 +110,5 @@ export default function PlacePage() {
         )}
       </section>
     </main>
-  );
+);
 }
