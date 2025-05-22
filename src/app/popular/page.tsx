@@ -29,14 +29,14 @@ export default function PopularGames() {
   }, []);
 
   return (
-    <main className="p-6">
-      <h1 className="text-3xl font-bold mb-6">🔥 人気のRobloxプレイス</h1>
+    <main className="p-6 space-y-6">
+      <h1 className="text-3xl font-bold">🔥 人気のRobloxプレイス</h1>
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
         {games.map((game) => (
           <div
             key={game.id}
             onClick={() => router.push(`/place/${game.rootPlaceId}`)}
-            className="cursor-pointer border rounded-lg shadow hover:shadow-lg transition overflow-hidden"
+            className="cursor-pointer border border-white/20 rounded-lg shadow-lg hover:shadow-xl transition overflow-hidden bg-white/10 backdrop-blur"
           >
             <img
               src={game.thumbnailUrl}
@@ -45,7 +45,7 @@ export default function PopularGames() {
             />
             <div className="p-4">
               <h2 className="text-lg font-semibold">{game.name}</h2>
-              <p className="text-sm text-gray-500">{game.creatorName}</p>
+              <p className="text-sm text-gray-300">{game.creatorName}</p>
             </div>
           </div>
         ))}

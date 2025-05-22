@@ -39,14 +39,14 @@ export default function PlacesPage() {
   }, []);
 
   return (
-    <main className="p-6">
-      <h1 className="text-3xl font-bold mb-6">🎮 プレイス一覧</h1>
+    <main className="p-6 space-y-6">
+      <h1 className="text-3xl font-bold">🎮 プレイス一覧</h1>
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
         {places.map((place) => (
           <div
             key={place.place_id}
             onClick={() => router.push(`/place/${place.place_id}`)}
-            className="cursor-pointer border rounded-lg shadow hover:shadow-lg transition overflow-hidden bg-white"
+            className="cursor-pointer border border-white/20 rounded-lg shadow-lg hover:shadow-xl transition overflow-hidden bg-white/10 backdrop-blur"
           >
             {place.thumbnail_url ? (
               <img
@@ -55,13 +55,13 @@ export default function PlacesPage() {
                 className="w-full h-40 object-cover"
               />
             ) : (
-              <div className="w-full h-40 bg-gray-100 flex items-center justify-center text-gray-400">
+              <div className="w-full h-40 bg-white/10 flex items-center justify-center text-gray-300">
                 No image
               </div>
             )}
             <div className="p-4">
               <h2 className="text-lg font-semibold">{place.name}</h2>
-              <p className="text-sm text-gray-500">{place.creator_name}</p>
+              <p className="text-sm text-gray-300">{place.creator_name}</p>
             </div>
           </div>
         ))}

@@ -23,10 +23,25 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="ja">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen bg-gradient-to-br from-purple-600 via-pink-600 to-rose-600 text-white`}
       >
+        <header className="bg-black/30 backdrop-blur-md">
+          <div className="container mx-auto flex items-center justify-between px-4 py-4">
+            <a href="/" className="text-2xl font-bold">
+              <span className="text-yellow-400">★</span> STAR REPO
+            </a>
+            <nav className="space-x-4 text-sm">
+              <a href="/popular" className="hover:underline">
+                Popular
+              </a>
+              <a href="/places" className="hover:underline">
+                Places
+              </a>
+            </nav>
+          </div>
+        </header>
         {children}
       </body>
     </html>

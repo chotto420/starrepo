@@ -54,7 +54,7 @@ export default function PlacePage() {
   };
 
   return (
-    <main className="p-4 max-w-xl mx-auto">
+    <main className="p-6 max-w-xl mx-auto space-y-8 bg-white/10 backdrop-blur rounded-xl shadow-lg">
       {game && (
         <div className="mb-6">
           <h2 className="text-2xl font-bold">{game.name}</h2>
@@ -66,13 +66,13 @@ export default function PlacePage() {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="mb-8">
+      <form onSubmit={handleSubmit} className="space-y-4">
         <label className="block mb-2">
           評価：
           <select
             value={rating}
             onChange={(e) => setRating(Number(e.target.value))}
-            className="ml-2 border px-2 py-1"
+            className="ml-2 border border-gray-300 rounded bg-white/80 px-2 py-1 text-black"
           >
             {[1, 2, 3, 4, 5].map((n) => (
               <option key={n} value={n}>
@@ -85,10 +85,10 @@ export default function PlacePage() {
           value={comment}
           onChange={(e) => setComment(e.target.value)}
           rows={3}
-          className="w-full border p-2 mb-2"
+          className="w-full border border-gray-300 p-2 rounded bg-white/80 text-black"
           placeholder="コメントを入力"
         />
-        <button type="submit" className="rounded bg-yellow-400 px-4 py-2">
+        <button type="submit" className="rounded bg-yellow-400 text-black font-semibold px-4 py-2 hover:bg-yellow-500 transition">
           投稿する
         </button>
       </form>
@@ -100,7 +100,7 @@ export default function PlacePage() {
             <div key={r.id} className="mb-4 border-b pb-2">
               <div>{r.rating}★</div>
               <p>{r.comment}</p>
-              <small className="text-gray-500">
+              <small className="text-gray-300">
                 {new Date(r.created_at).toLocaleString()}
               </small>
             </div>
