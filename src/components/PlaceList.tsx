@@ -63,22 +63,22 @@ export default function PlaceList() {
         <div
           key={place.place_id}
           onClick={() => router.push(`/place/${place.place_id}`)}
-          className="cursor-pointer border rounded-lg shadow hover:shadow-lg transition overflow-hidden bg-white"
+          className="cursor-pointer rounded-xl overflow-hidden shadow-lg hover:shadow-xl hover:scale-[1.02] transition transform bg-white dark:bg-gray-800"
         >
           {place.thumbnail_url ? (
             <img
               src={place.thumbnail_url}
               alt={place.name}
-              className="w-full h-40 object-cover"
+              className="w-full h-48 object-cover"
             />
           ) : (
-            <div className="w-full h-40 bg-gray-100 flex items-center justify-center text-gray-400">
+            <div className="w-full h-48 bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-gray-400">
               No image
             </div>
           )}
           <div className="p-4">
             <h2 className="text-lg font-semibold">{place.name}</h2>
-            <p className="text-sm text-gray-500">{place.creator_name}</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">{place.creator_name}</p>
             {place.average_rating !== null && (
               <p className="text-sm mt-1">
                 平均評価: {place.average_rating.toFixed(1)}★
@@ -89,7 +89,7 @@ export default function PlaceList() {
               target="_blank"
               rel="noopener noreferrer"
               onClick={(e) => e.stopPropagation()}
-              className="text-blue-600 underline text-sm mt-1 inline-block"
+              className="text-blue-600 dark:text-blue-400 underline text-sm mt-1 inline-block"
             >
               ゲームへ
             </a>
