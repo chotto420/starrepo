@@ -56,12 +56,12 @@ export default function PlacePage() {
   return (
     <main className="p-4 max-w-xl mx-auto">
       {game && (
-        <div className="mb-6">
-          <h2 className="text-2xl font-bold">{game.name}</h2>
+        <div className="mb-6 bg-white dark:bg-gray-800 p-4 rounded-xl shadow">
+          <h2 className="text-2xl font-bold mb-2">{game.name}</h2>
           <img
             src={game.thumbnailUrl}
             alt={game.name}
-            className="mt-2 w-full rounded"
+            className="mt-2 w-full rounded-lg"
           />
         </div>
       )}
@@ -72,7 +72,7 @@ export default function PlacePage() {
           <select
             value={rating}
             onChange={(e) => setRating(Number(e.target.value))}
-            className="ml-2 border px-2 py-1"
+            className="ml-2 border px-2 py-1 rounded-md"
           >
             {[1, 2, 3, 4, 5].map((n) => (
               <option key={n} value={n}>
@@ -85,10 +85,13 @@ export default function PlacePage() {
           value={comment}
           onChange={(e) => setComment(e.target.value)}
           rows={3}
-          className="w-full border p-2 mb-2"
+          className="w-full border p-2 mb-2 rounded-md"
           placeholder="コメントを入力"
         />
-        <button type="submit" className="rounded bg-yellow-400 px-4 py-2">
+        <button
+          type="submit"
+          className="rounded-md bg-yellow-400 text-black font-semibold px-4 py-2 hover:bg-yellow-500 transition-colors"
+        >
           投稿する
         </button>
       </form>
