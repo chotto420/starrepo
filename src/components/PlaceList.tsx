@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
+import RatingStars from "./RatingStars";
 
 type Place = {
   place_id: number;
@@ -19,6 +20,17 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
+
+async function fetchThumbnail(placeId: number): Promise<string | null> {
+  try {
+    const res = await fetch(`https://thumbnails.roblox.com/v1/places/${placeId}/icons?size=256x256&format=Png&isCircular=false`);
+    if (!res.ok) return null;
+    const json = await res.json();
+    return json?.data?.[0]?.imageUrl ?? null;
+  } catch {
+    return null;
+  }
+}
 
 export default function PlaceList() {
   const [places, setPlaces] = useState<PlaceWithRating[]>([]);
@@ -47,7 +59,11 @@ export default function PlaceList() {
             reviews && reviews.length
               ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
               : null;
-          return { ...p, average_rating: avg };
+          let thumb = p.thumbnail_url;
+          if (!thumb) {
+            thumb = await fetchThumbnail(p.place_id);
+          }
+          return { ...p, thumbnail_url: thumb, average_rating: avg };
         })
       );
 
@@ -77,22 +93,15 @@ export default function PlaceList() {
             </div>
           )}
           <div className="p-4">
-            <h2 className="text-lg font-semibold">{place.name}</h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400">{place.creator_name}</p>
-            {place.average_rating !== null && (
-              <p className="text-sm mt-1">
-                平均評価: {place.average_rating.toFixed(1)}★
-              </p>
+            <h2 className="text-lg font-semibold mb-1">{place.name}</h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400">ID: {place.place_id}</p>
+            {place.average_rating !== null ? (
+              <div className="mt-2">
+                <RatingStars rating={place.average_rating} />
+              </div>
+            ) : (
+              <p className="text-sm mt-2 text-gray-500">評価なし</p>
             )}
-            <a
-              href={`https://www.roblox.com/games/${place.place_id}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={(e) => e.stopPropagation()}
-              className="text-blue-600 dark:text-blue-400 underline text-sm mt-1 inline-block"
-            >
-              ゲームへ
-            </a>
           </div>
         </div>
       ))}
