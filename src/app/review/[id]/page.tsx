@@ -1,4 +1,5 @@
 // src/app/review/[id]/page.tsx
+import type { PageProps } from "next";
 import ReviewPage from "@/components/ReviewPage";
 
 async function getPlaceInfo(placeId: number) {
@@ -21,7 +22,7 @@ async function getPlaceInfo(placeId: number) {
   };
 }
 
-export default async function Page({ params }: { params: { id: string } }) {
+export default async function Page({ params }: PageProps<{ id: string }>) {
   const placeId = Number(params.id);
   const info = await getPlaceInfo(placeId);
 
