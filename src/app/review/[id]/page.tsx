@@ -1,29 +1,16 @@
-// src/app/review/[id]/page.tsx
 import ReviewPage from "@/components/ReviewPage";
 
-async function getPlaceInfo(placeId: number) {
-  const uRes = await fetch(
-    `https://apis.roblox.com/universes/v1/places/${placeId}/universe`
-  );
-  const { universeId } = await uRes.json();
-  const gRes = await fetch(
-    `https://games.roblox.com/v1/games?universeIds=${universeId}`
-  );
-  const { data } = await gRes.json();
-  const game = data[0];
+/** ページの props は params のみ */
+export type ReviewPageProps = {
+  params: { id: string };
+};
 
-  return {
-    placeId,
-    title: game.name,
-    thumbnailUrl: game.thumbnailUrl,
-    likeCount: game.totalUpVotes ?? 0,
-    visitCount: game.placeVisits ?? 0,
-  };
+/** デフォルトページコンポーネント */
+export default async function Page({ params }: ReviewPageProps) {
+  const { id } = params;
+  return <ReviewPage placeId={id} />;
 }
 
-export default async function Page({ params }: { params: { id: string } }) {
-  const placeId = Number(params.id);
-  const info = await getPlaceInfo(placeId);
-
-  return <ReviewPage {...info} />;
-}
+/** 追加の Next.js 関連関数が必要ならここで定義
+export async function generateStaticParams() { ... }
+*/
