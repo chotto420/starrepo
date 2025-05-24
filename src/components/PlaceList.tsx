@@ -10,6 +10,8 @@ type Place = {
   name: string;
   creator_name: string;
   thumbnail_url: string | null;
+  visit_count: number | null;
+  favorite_count: number | null;
 };
 
 interface PlaceWithRating extends Place {
@@ -40,7 +42,9 @@ export default function PlaceList() {
     async function fetchPlaces() {
       const { data, error } = await supabase
         .from("places")
-        .select("place_id, name, creator_name, thumbnail_url")
+        .select(
+          "place_id, name, creator_name, thumbnail_url, visit_count, favorite_count"
+        )
         .order("last_synced_at", { ascending: false });
 
       if (error) {
@@ -94,7 +98,10 @@ export default function PlaceList() {
           )}
           <div className="p-4">
             <h2 className="text-lg font-semibold mb-1">{place.name}</h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400">ID: {place.place_id}</p>
+            <div className="text-sm text-gray-500 dark:text-gray-400 flex gap-2">
+              <span>▶️ {place.visit_count}</span>
+              <span>❤ {place.favorite_count}</span>
+            </div>
             {place.average_rating !== null ? (
               <div className="mt-2">
                 <RatingStars rating={place.average_rating} />
