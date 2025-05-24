@@ -1,10 +1,9 @@
-import ReviewPage from "@/components/ReviewPage";
+import ReviewPage from '@/components/ReviewPage';
 
-/** ルートコンポーネント。型はインラインで渡す */
-export default async function Page({
-  params,
-}: {
-  params: { id: string };
-}) {
-  return <ReviewPage placeId={params.id} />;
+/** ルートコンポーネント */
+export default async function Page(
+  { params }: { params: Promise<{ id: string }> }      // ★Promise 型にする
+) {
+  const { id } = await params;                         // ★await で展開
+  return <ReviewPage placeId={id} />;
 }
