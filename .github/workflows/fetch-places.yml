@@ -1,11 +1,7 @@
 name: Sync places to Supabase
 
 on:
-  workflow_dispatch:       # 手動実行ボタン
-  # push:
-  #   branches: [ main ]   # 必要なら解除
-  # schedule:
-  #   - cron: '0 20 * * SUN'  # 毎週月曜5:00(JST) ※UTC指定
+  workflow_dispatch:
 
 jobs:
   sync:
@@ -20,10 +16,10 @@ jobs:
           node-version: 20
           cache: 'npm'
 
-      - run: npm ci
+      - run: npm ci          # ← ts-node もここで入る
 
       - name: Run fetch-places script
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
-        run: npx ts-node scripts/fetch-places.ts
+        run: npx ts-node-esm scripts/fetch-places.ts
