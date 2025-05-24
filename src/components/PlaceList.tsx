@@ -107,9 +107,11 @@ export default function PlaceList() {
           )}
           <div className="p-4">
             <h2 className="text-lg font-semibold mb-1">{place.name}</h2>
+
             <div className="text-sm text-gray-500 dark:text-gray-400 flex gap-4">
               <span>▶ 訪問 {formatCount(place.visit_count)}</span>
               <span>❤ お気に入り {formatCount(place.favorite_count)}</span>
+
             </div>
             {place.average_rating !== null ? (
               <div className="mt-2">
