@@ -6,8 +6,27 @@ import { useState } from "react";
 import PlaceList from "@/components/PlaceList";
 
 export default function Home() {
-  const [placeId, setPlaceId] = useState("");
+  const [query, setQuery] = useState("");
   const router = useRouter();
+
+  const handleSearch = async () => {
+    if (!query.trim()) return;
+    try {
+      const res = await fetch(
+        `/api/search?name=${encodeURIComponent(query.trim())}`
+      );
+      const json = await res.json();
+      const first = json?.data?.[0];
+      if (first) {
+        router.push(`/place/${first.place_id}`);
+      } else {
+        window.alert("見つかりませんでした");
+      }
+    } catch (err) {
+      console.error("Search failed", err);
+      window.alert("検索に失敗しました");
+    }
+  };
 
   return (
     <main className="min-h-screen p-4">
@@ -24,16 +43,16 @@ export default function Home() {
         <div className="flex items-center shadow-md rounded-lg overflow-hidden">
           <input
             type="text"
-            value={placeId}
-            onChange={(e) => setPlaceId(e.target.value)}
-            placeholder="Place ID を入力"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="ゲーム名で検索"
             className="border px-3 py-2 focus:outline-none flex-1 rounded-none focus:ring-2 focus:ring-yellow-400"
           />
           <button
-            onClick={() => router.push(`/place/${placeId}`)}
+            onClick={handleSearch}
             className="bg-yellow-400 text-black font-semibold px-4 py-2 rounded-none hover:bg-yellow-500 transition-colors"
           >
-            開く
+            検索
           </button>
         </div>
       </div>
