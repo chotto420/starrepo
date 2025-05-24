@@ -23,4 +23,4 @@ jobs:
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
-        run: npx ts-node-esm scripts/fetch-places.ts
+        run: node --loader ts-node/esm --experimental-specifier-resolution=node scripts/fetch-places.ts
