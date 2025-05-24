@@ -32,7 +32,7 @@ export default function ReviewPage({
   return (
     <main className="relative max-w-xl mx-auto p-4">
       <a
-        href="/places"
+        href="/"
         className="absolute top-4 left-4 bg-gray-200 hover:bg-gray-300 text-sm px-2 py-1 rounded"
       >
         一覧へ戻る
