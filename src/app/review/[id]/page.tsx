@@ -1,6 +1,10 @@
 // src/app/review/[id]/page.tsx
 import ReviewPage from "@/components/ReviewPage";
-import type { PageProps } from "next";
+
+interface PageProps<T extends Record<string, string | string[] | undefined> = {}> {
+  params: T;
+  searchParams?: Record<string, string | string[] | undefined>;
+}
 
 async function getPlaceInfo(placeId: number) {
   const uRes = await fetch(
