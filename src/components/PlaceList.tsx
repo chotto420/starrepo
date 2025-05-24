@@ -5,6 +5,15 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
 import RatingStars from "./RatingStars";
 
+function formatCount(count: number | null): string {
+  if (count === null || count === undefined) return "-";
+  if (count >= 10000) {
+    const val = count / 10000;
+    return `${val.toFixed(val >= 10 ? 0 : 1).replace(/\.0$/, "")}万`;
+  }
+  return count.toLocaleString();
+}
+
 type Place = {
   place_id: number;
   name: string;
@@ -98,9 +107,11 @@ export default function PlaceList() {
           )}
           <div className="p-4">
             <h2 className="text-lg font-semibold mb-1">{place.name}</h2>
-            <div className="text-sm text-gray-500 dark:text-gray-400 flex gap-2">
-              <span>▶️ {place.visit_count}</span>
-              <span>❤ {place.favorite_count}</span>
+
+            <div className="text-sm text-gray-500 dark:text-gray-400 flex gap-4">
+              <span>▶ 訪問 {formatCount(place.visit_count)}</span>
+              <span>❤ お気に入り {formatCount(place.favorite_count)}</span>
+
             </div>
             {place.average_rating !== null ? (
               <div className="mt-2">
