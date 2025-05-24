@@ -4,6 +4,7 @@
 import { useState } from "react";
 import useSWR from "swr";
 import { useParams } from "next/navigation";
+import Link from "next/link";
 
 type Review = {
   id: number;
@@ -54,7 +55,13 @@ export default function PlacePage() {
   };
 
   return (
-    <main className="p-4 max-w-xl mx-auto">
+    <main className="relative p-4 max-w-xl mx-auto">
+      <Link
+        href="/"
+        className="absolute top-4 left-4 bg-gray-200 hover:bg-gray-300 text-sm px-2 py-1 rounded"
+      >
+        トップへ戻る
+      </Link>
       {game && (
         <div className="mb-6 bg-white dark:bg-gray-800 p-4 rounded-xl shadow">
           <h2 className="text-2xl font-bold mb-2">{game.name}</h2>
@@ -65,6 +72,14 @@ export default function PlacePage() {
           />
         </div>
       )}
+      <div className="mb-4">
+        <Link
+          href={`/review/${placeId}`}
+          className="text-blue-600 hover:underline"
+        >
+          レビューを書く
+        </Link>
+      </div>
 
       <form onSubmit={handleSubmit} className="mb-8">
         <label className="block mb-2">
