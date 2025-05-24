@@ -16,8 +16,8 @@ jobs:
           node-version: 20
           cache: 'npm'
 
--     - run: npm ci
-+     - run: npm install --no-audit --no-fund    # ← ここだけ置換
+
+      - run: npm install --no-audit --no-fund
 
       - name: Run fetch-places script
         env:
