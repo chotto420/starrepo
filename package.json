@@ -17,7 +17,7 @@
     "swr": "^2.3.3"
   },
   "devDependencies": {
-    "ts-node": "^10.9.2",        // ★ 追加
+    "ts-node": "^10.9.2",
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
