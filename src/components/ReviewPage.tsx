@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import RatingStars from "./RatingStars";
 
 export type ReviewPageProps = {
@@ -31,12 +32,12 @@ export default function ReviewPage({
 
   return (
     <main className="relative max-w-xl mx-auto p-4">
-      <a
-        href="/places"
+      <Link
+        href="/"
         className="absolute top-4 left-4 bg-gray-200 hover:bg-gray-300 text-sm px-2 py-1 rounded"
       >
         一覧へ戻る
-      </a>
+      </Link>
       <div className="mb-6 bg-white dark:bg-gray-800 p-4 rounded-xl shadow">
         <h1 className="text-2xl font-bold mb-2">{title}</h1>
         <img

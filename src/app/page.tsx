@@ -2,6 +2,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useState } from "react";
 import PlaceList from "@/components/PlaceList";
 
@@ -36,6 +37,12 @@ export default function Home() {
             開く
           </button>
         </div>
+        <Link
+          href="/popular"
+          className="mt-4 text-blue-600 hover:underline"
+        >
+          人気プレイスを見る
+        </Link>
       </div>
 
       <section>
