@@ -1,9 +1,11 @@
 // src/app/review/[id]/page.tsx
 import ReviewPage from "@/components/ReviewPage";
 
-interface PageProps<T extends Record<string, string | string[] | undefined> = {}> {
+type RouteParams = Record<string, string | string[] | undefined>;
+
+interface PageProps<T extends RouteParams = RouteParams> {
   params: T;
-  searchParams?: Record<string, string | string[] | undefined>;
+  searchParams?: RouteParams;
 }
 
 async function getPlaceInfo(placeId: number) {
