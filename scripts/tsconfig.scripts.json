@@ -1,0 +1,10 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,                 // ★ JS を出力する
+    "outDir": "../dist",             // dist/scripts/…js に出力
+    "module": "commonjs",            // Node がそのまま実行可
+    "moduleResolution": "node16"     // bundler → node16 に上書き
+  },
+  "include": ["./**/*.ts"]
+}
