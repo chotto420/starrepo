@@ -21,8 +21,13 @@ async function getPlaceInfo(placeId: number) {
   };
 }
 
-export default async function Page({ params }: { params: { id: string } }) {
-  const placeId = Number(params.id);
+type ReviewPageProps = {
+  params: { id: string };
+};
+
+export default async function Page({ params }: ReviewPageProps) {
+  const { id } = params;
+  const placeId = Number(id);
   const info = await getPlaceInfo(placeId);
 
   return <ReviewPage {...info} />;
