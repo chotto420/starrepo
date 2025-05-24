@@ -5,11 +5,22 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
 import RatingStars from "./RatingStars";
 
+function formatCount(count: number | null): string {
+  if (count === null || count === undefined) return "-";
+  if (count >= 10000) {
+    const val = count / 10000;
+    return `${val.toFixed(val >= 10 ? 0 : 1).replace(/\.0$/, "")}万`;
+  }
+  return count.toLocaleString();
+}
+
 type Place = {
   place_id: number;
   name: string;
   creator_name: string;
   thumbnail_url: string | null;
+  visit_count: number | null;
+  favorite_count: number | null;
 };
 
 interface PlaceWithRating extends Place {
@@ -40,7 +51,9 @@ export default function PlaceList() {
     async function fetchPlaces() {
       const { data, error } = await supabase
         .from("places")
-        .select("place_id, name, creator_name, thumbnail_url")
+        .select(
+          "place_id, name, creator_name, thumbnail_url, visit_count, favorite_count"
+        )
         .order("last_synced_at", { ascending: false });
 
       if (error) {
@@ -94,7 +107,10 @@ export default function PlaceList() {
           )}
           <div className="p-4">
             <h2 className="text-lg font-semibold mb-1">{place.name}</h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400">ID: {place.place_id}</p>
+            <div className="text-sm text-gray-500 dark:text-gray-400 flex gap-4">
+              <span>▶ 訪問 {formatCount(place.visit_count)}</span>
+              <span>❤ お気に入り {formatCount(place.favorite_count)}</span>
+            </div>
             {place.average_rating !== null ? (
               <div className="mt-2">
                 <RatingStars rating={place.average_rating} />
