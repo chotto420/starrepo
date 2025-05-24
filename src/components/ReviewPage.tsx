@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";          // ★ 追加
 import RatingStars from "./RatingStars";
 
 export type ReviewPageProps = {
@@ -10,7 +11,7 @@ export type ReviewPageProps = {
   thumbnailUrl: string;
   likeCount: number;
   visitCount: number;
-  rating?: number; // StarRepo独自評価
+  rating?: number;
 };
 
 export default function ReviewPage({
@@ -25,7 +26,6 @@ export default function ReviewPage({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // 投稿処理はアプリ側で実装してください
     console.log("submit review", { placeId, comment });
     setComment("");
   };
@@ -38,13 +38,21 @@ export default function ReviewPage({
       >
         一覧へ戻る
       </Link>
+
+      {/* カード */}
       <div className="mb-6 bg-white dark:bg-gray-800 p-4 rounded-xl shadow">
         <h1 className="text-2xl font-bold mb-2">{title}</h1>
-        <img
+
+        {/* ★ ここだけ変更 */}
+        <Image
           src={thumbnailUrl}
           alt={title}
-          className="w-full rounded-lg mb-2"
+          width={768}          // 実際サイズを指定
+          height={432}
+          className="w-full rounded-lg mb-2 object-cover"
+          priority            // LCP 改善
         />
+
         <div className="flex flex-wrap gap-4 text-sm text-gray-600 dark:text-gray-400">
           <span>👍 {likeCount}</span>
           <span>▶️ {visitCount}</span>
@@ -54,6 +62,7 @@ export default function ReviewPage({
             </span>
           )}
         </div>
+
         <a
           href={`https://www.roblox.com/games/${placeId}`}
           target="_blank"
@@ -64,6 +73,7 @@ export default function ReviewPage({
         </a>
       </div>
 
+      {/* レビュー投稿 */}
       <form onSubmit={handleSubmit} className="pt-4">
         <textarea
           value={comment}
