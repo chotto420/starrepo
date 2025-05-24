@@ -1,12 +1,12 @@
-// scripts/fetch-places.ts (updated)
-// --------------------------------------------------
+// scripts/fetch-places.ts  ── 完全版（like_count を正しく取得する修正版）
+// -----------------------------------------------------------------------------
 // Roblox → Supabase 同期スクリプト
-//   - Place → Universe マッピング
-//   - Universe → サムネイル取得
-//   - Universe → いいね数 upVotes 取得
-//   - Game 詳細取得（訪問数 visits も含む）
-//   - Supabase `places` テーブルへ upsert
-// --------------------------------------------------
+//   1. Place → Universe マッピング
+//   2. Universe → サムネイル取得
+//   3. Universe → いいね数 upVotes 取得  ★今回バグ修正
+//   4. Game 詳細取得（訪問数 visits も含む）
+//   5. Supabase `places` テーブルへ upsert
+// -----------------------------------------------------------------------------
 
 import dotenv from "dotenv";
 import { createClient } from "@supabase/supabase-js";
@@ -30,23 +30,29 @@ const placeIds = [
 
 /* 型 */
 export type PlaceToUniverse = Record<number, number>;
+
 interface ThumbRes {
   data: {
     universeId: number;
     thumbnails: { state: string; imageUrl: string }[];
   }[];
 }
+
 interface VotesRes {
   data: {
-    universeId: number;
+    /* Roblox Votes API は `id` フィールドで universeId を返す */
+    id: number;
     upVotes: number;
     downVotes: number;
   }[];
 }
+
 interface GameRes {
   data: {
+    id: number;
     name: string;
     visits: number;
+    upVotes?: number; // 念のため取得して fallback に使う
     creator?: { name: string };
     thumbnailUrl?: string;
   }[];
@@ -63,7 +69,7 @@ async function fetchRetry(url: string, retry = 3) {
   throw new Error("unreachable");
 }
 
-/* Step‑1  Place → Universe */
+/* Step-1  Place → Universe */
 async function toUniverseMap(ids: readonly number[]) {
   const map: PlaceToUniverse = {};
   for (const id of ids) {
@@ -81,7 +87,7 @@ async function toUniverseMap(ids: readonly number[]) {
   return map;
 }
 
-/* Step‑2a  Universe → サムネイル */
+/* Step-2a  Universe → サムネイル */
 async function fetchThumbs(uIds: number[]) {
   const out: Record<number, string> = {};
   const CHUNK = 100;
@@ -111,7 +117,7 @@ async function fetchThumbs(uIds: number[]) {
   return out;
 }
 
-/* Step‑2b  Universe → いいね数 (upVotes) */
+/* Step-2b  Universe → いいね数 (upVotes)  */
 async function fetchVotes(uIds: number[]) {
   const out: Record<number, number> = {};
   const CHUNK = 100;
@@ -126,18 +132,19 @@ async function fetchVotes(uIds: number[]) {
     }
     const { data } = (await r.json()) as VotesRes;
     for (const v of data) {
-      out[v.universeId] = v.upVotes;
-      console.log(`👍 ${v.universeId} → ${v.upVotes}`);
+      out[v.id] = v.upVotes; // ← id をキーに
+      console.log(`👍 ${v.id} → ${v.upVotes}`);
     }
     await sleep(100);
   }
   return out;
 }
 
-/* Step‑3  upsert */
+/* Step-3  upsert */
 async function run() {
   const place2Uni = await toUniverseMap(placeIds);
   const uniIds = [...new Set(Object.values(place2Uni))];
+
   const [thumbMap, votesMap] = await Promise.all([
     fetchThumbs(uniIds),
     fetchVotes(uniIds),
@@ -160,7 +167,9 @@ async function run() {
     }
 
     const thumbnail_url = thumbMap[uId] ?? game.thumbnailUrl ?? "";
-    const like_count = votesMap[uId] ?? 0;
+    const like_count =
+      votesMap[uId] ??
+      (typeof game.upVotes === "number" ? game.upVotes : 0); // fallback
     const visit_count = game.visits ?? 0;
 
     const { error } = await supabase.from("places").upsert(
@@ -183,4 +192,3 @@ async function run() {
 }
 
 run().catch(console.error);
-
