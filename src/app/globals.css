@@ -31,3 +31,11 @@ body {
   font-family: var(--font-geist-sans, Arial, Helvetica, sans-serif);
   line-height: 1.6;
 }
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
