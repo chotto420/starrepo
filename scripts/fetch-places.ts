@@ -1,11 +1,16 @@
-// scripts/fetch-places.ts  ── 完全版（like_count を正しく取得する修正版）
+// scripts/fetch-places.ts ── 拡張版（人気指標・メタ情報も保存）
 // -----------------------------------------------------------------------------
-// Roblox → Supabase 同期スクリプト
-//   1. Place → Universe マッピング
-//   2. Universe → サムネイル取得
-//   3. Universe → いいね数 upVotes 取得  ★今回バグ修正
-//   4. Game 詳細取得（訪問数 visits も含む）
-//   5. Supabase `places` テーブルへ upsert
+// 追加取得カラム
+//   • dislike_count  (downVotes)
+//   • favorite_count (favoritedCount)
+//   • playing        (現在の同接数)
+//   • max_players
+//   • genre
+//   • price
+//   • is_sponsored
+//   • first_released_at / last_updated_at
+//   • like_ratio     (= up / (up+down))
+// 必要に応じて Supabase 側に列を追加してください（SQL 例は README 参照）
 // -----------------------------------------------------------------------------
 
 import dotenv from "dotenv";
@@ -18,7 +23,7 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-/* 対象 PlaceId 一覧 */
+/* 対象 PlaceId ⬇ */
 const placeIds = [
   2788229376, 4924922222, 8737602449, 6516141723, 155615604, 920587237,
   142823291, 6678877691, 2414851778, 734159876, 2753915549, 3956818381,
@@ -29,22 +34,14 @@ const placeIds = [
 ] as const;
 
 /* 型 */
-export type PlaceToUniverse = Record<number, number>;
+type PlaceToUniverse = Record<number, number>;
 
 interface ThumbRes {
-  data: {
-    universeId: number;
-    thumbnails: { state: string; imageUrl: string }[];
-  }[];
+  data: { universeId: number; thumbnails: { state: string; imageUrl: string }[] }[];
 }
 
 interface VotesRes {
-  data: {
-    /* Roblox Votes API は `id` フィールドで universeId を返す */
-    id: number;
-    upVotes: number;
-    downVotes: number;
-  }[];
+  data: { id: number; upVotes: number; downVotes: number }[];
 }
 
 interface GameRes {
@@ -52,14 +49,24 @@ interface GameRes {
     id: number;
     name: string;
     visits: number;
-    upVotes?: number; // 念のため取得して fallback に使う
-    creator?: { name: string };
+    playing: number;
+    favoritedCount: number;
+    maxPlayers: number;
+    created: string;
+    updated: string;
+    genre: number;
+    price: number;
+    isSponsored: boolean;
+    isPaidAccess: boolean;
+    universeAvatarType: string;
+    upVotes?: number;
     thumbnailUrl?: string;
+    creator?: { name: string };
   }[];
 }
 
 /* 汎用 */
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 async function fetchRetry(url: string, retry = 3) {
   for (let i = 0; i <= retry; i++) {
     const res = await fetch(url);
@@ -71,81 +78,64 @@ async function fetchRetry(url: string, retry = 3) {
 
 /* Step-1  Place → Universe */
 async function toUniverseMap(ids: readonly number[]) {
-  const map: PlaceToUniverse = {};
+  const out: PlaceToUniverse = {};
   for (const id of ids) {
-    const u = `https://apis.roblox.com/universes/v1/places/${id}/universe`;
-    const r = await fetchRetry(u);
-    if (!r.ok) {
-      console.warn(`❌ place ${id}: ${r.status}`);
-      continue;
-    }
-    const { universeId } = (await r.json()) as { universeId: number };
-    map[id] = universeId;
+    const r = await fetchRetry(`https://apis.roblox.com/universes/v1/places/${id}/universe`);
+    if (!r.ok) { console.warn(`❌ place ${id}: ${r.status}`); continue; }
+    const { universeId } = await r.json() as { universeId: number };
+    out[id] = universeId;
     console.log(`🔄 ${id} → ${universeId}`);
     await sleep(100);
   }
-  return map;
+  return out;
 }
 
-/* Step-2a  Universe → サムネイル */
+/* Step-2a  サムネ */
 async function fetchThumbs(uIds: number[]) {
   const out: Record<number, string> = {};
   const CHUNK = 100;
   for (let i = 0; i < uIds.length; i += CHUNK) {
     const chunk = uIds.slice(i, i + CHUNK);
-    const tUrl =
+    const r = await fetchRetry(
       "https://thumbnails.roblox.com/v1/games/multiget/thumbnails" +
-      `?universeIds=${chunk.join(",")}` +
-      `&countPerUniverse=10&size=768x432&format=Png&isCircular=false`;
-
-    const r = await fetchRetry(tUrl);
-    if (!r.ok) {
-      console.warn(`⚠️ thumb: ${r.status}`);
-      continue;
-    }
-
-    const { data } = (await r.json()) as ThumbRes;
+      `?universeIds=${chunk.join(",")}&countPerUniverse=1&size=768x432&format=Png`
+    );
+    if (!r.ok) { console.warn(`⚠️ thumb: ${r.status}`); continue; }
+    const { data } = await r.json() as ThumbRes;
     for (const g of data) {
-      const pick = g.thumbnails.find((t) => t.state === "Completed");
-      if (pick) {
-        out[g.universeId] = pick.imageUrl;
-        console.log(`📸 ${g.universeId} → ${pick.imageUrl}`);
-      }
+      const pic = g.thumbnails.find(t => t.state === "Completed");
+      if (pic) { out[g.universeId] = pic.imageUrl; }
     }
     await sleep(100);
   }
   return out;
 }
 
-/* Step-2b  Universe → いいね数 (upVotes)  */
+/* Step-2b  Votes */
 async function fetchVotes(uIds: number[]) {
-  const out: Record<number, number> = {};
+  const up: Record<number, number> = {};
+  const down: Record<number, number> = {};
   const CHUNK = 100;
   for (let i = 0; i < uIds.length; i += CHUNK) {
     const chunk = uIds.slice(i, i + CHUNK);
-    const vUrl =
-      `https://games.roblox.com/v1/games/votes?universeIds=${chunk.join(",")}`;
-    const r = await fetchRetry(vUrl);
-    if (!r.ok) {
-      console.warn(`⚠️ votes: ${r.status}`);
-      continue;
-    }
-    const { data } = (await r.json()) as VotesRes;
+    const r = await fetchRetry(`https://games.roblox.com/v1/games/votes?universeIds=${chunk.join(",")}`);
+    if (!r.ok) { console.warn(`⚠️ votes: ${r.status}`); continue; }
+    const { data } = await r.json() as VotesRes;
     for (const v of data) {
-      out[v.id] = v.upVotes; // ← id をキーに
-      console.log(`👍 ${v.id} → ${v.upVotes}`);
+      up[v.id] = v.upVotes;
+      down[v.id] = v.downVotes;
     }
     await sleep(100);
   }
-  return out;
+  return { up, down };
 }
 
 /* Step-3  upsert */
 async function run() {
   const place2Uni = await toUniverseMap(placeIds);
-  const uniIds = [...new Set(Object.values(place2Uni))];
+  const uniIds    = [...new Set(Object.values(place2Uni))];
 
-  const [thumbMap, votesMap] = await Promise.all([
+  const [thumbMap, { up: upMap, down: downMap }] = await Promise.all([
     fetchThumbs(uniIds),
     fetchVotes(uniIds),
   ]);
@@ -154,37 +144,37 @@ async function run() {
     const uId = place2Uni[pId];
     if (!uId) continue;
 
-    const gUrl = `https://games.roblox.com/v1/games?universeIds=${uId}`;
-    const gRes = await fetchRetry(gUrl);
-    if (!gRes.ok) {
-      console.warn(`❌ games ${uId}: ${gRes.status}`);
-      continue;
-    }
-    const game = ((await gRes.json()) as GameRes).data[0];
-    if (!game) {
-      console.warn(`⚠️ no game ${uId}`);
-      continue;
-    }
+    const gRes = await fetchRetry(`https://games.roblox.com/v1/games?universeIds=${uId}`);
+    if (!gRes.ok) { console.warn(`❌ games ${uId}: ${gRes.status}`); continue; }
+    const game = (await gRes.json() as GameRes).data[0];
+    if (!game) { console.warn(`⚠️ no game ${uId}`); continue; }
 
-    const thumbnail_url = thumbMap[uId] ?? game.thumbnailUrl ?? "";
-    const like_count =
-      votesMap[uId] ??
-      (typeof game.upVotes === "number" ? game.upVotes : 0); // fallback
-    const visit_count = game.visits ?? 0;
+    /* 指標計算 */
+    const up    = upMap[uId]    ?? game.upVotes    ?? 0;
+    const down  = downMap[uId]  ?? 0;
+    const ratio = up + down ? up / (up + down) : 0;
 
-    const { error } = await supabase.from("places").upsert(
-      {
-        place_id: pId,
-        universe_id: uId,
-        name: game.name,
-        creator_name: game.creator?.name ?? "unknown",
-        thumbnail_url,
-        like_count,
-        visit_count,
-        last_synced_at: new Date().toISOString(),
-      },
-      { onConflict: "place_id" }
-    );
+    /* upsert */
+    const { error } = await supabase.from("places").upsert({
+      place_id:          pId,
+      universe_id:       uId,
+      name:              game.name,
+      creator_name:      game.creator?.name ?? "unknown",
+      thumbnail_url:     thumbMap[uId] ?? game.thumbnailUrl ?? "",
+      like_count:        up,
+      dislike_count:     down,
+      like_ratio:        ratio,
+      visit_count:       game.visits,
+      favorite_count:    game.favoritedCount,
+      playing:           game.playing,
+      max_players:       game.maxPlayers,
+      genre:             game.genre,
+      price:             game.price,
+      is_sponsored:      game.isSponsored,
+      first_released_at: game.created,
+      last_updated_at:   game.updated,
+      last_synced_at:    new Date().toISOString(),
+    }, { onConflict: "place_id" });
 
     error ? console.error("🔥", error) : console.log(`✅ ${game.name}`);
     await sleep(100);
