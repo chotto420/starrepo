@@ -23,14 +23,12 @@ export async function GET() {
       );
     }
 
-    /* ここを unknown で受ける */
-    const data: unknown = await res.json();
+    const data = (await res.json()) as unknown; // ← 型を付けるならここ
     return NextResponse.json(data);
-  } catch (err: unknown) {
+  } catch (err: unknown) {                      // ★ ここを unknown に
     console.error("Fetch error:", err);
-
-    /* 安全に message を取り出す */
-    const message = err instanceof Error ? err.message : "unknown error";
+    const message =
+      err instanceof Error ? err.message : "unknown error";
     return NextResponse.json(
       { error: "Fetch failed", message },
       { status: 500 }
