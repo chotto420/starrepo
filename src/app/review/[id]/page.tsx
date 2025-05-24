@@ -1,6 +1,10 @@
 // src/app/review/[id]/page.tsx
 import ReviewPage from "@/components/ReviewPage";
 
+interface ReviewPageParams {
+  id: string;
+}
+
 async function getPlaceInfo(placeId: number) {
   const uRes = await fetch(
     `https://apis.roblox.com/universes/v1/places/${placeId}/universe`
@@ -21,7 +25,7 @@ async function getPlaceInfo(placeId: number) {
   };
 }
 
-export default async function Page({ params }: { params: { id: string } }) {
+export default async function Page({ params }: { params: ReviewPageParams }) {
   const placeId = Number(params.id);
   const info = await getPlaceInfo(placeId);
 
