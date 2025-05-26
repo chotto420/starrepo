@@ -47,13 +47,25 @@ export async function GET() {
   const top = scored.slice(0, 30);
 
   // フロントで利用していた列のみ返却
-  const data = top.map(({ place_id, name, creator_name, thumbnail_url, price }) => ({
-    place_id,
-    name,
-    creator_name,
-    thumbnail_url,
-    price,
-  }));
+  const data = top.map(
+    ({
+      place_id,
+      name,
+      creator_name,
+      thumbnail_url,
+      price,
+      visit_count,
+      favorite_count,
+    }) => ({
+      place_id,
+      name,
+      creator_name,
+      thumbnail_url,
+      price,
+      visit_count,
+      favorite_count,
+    })
+  );
 
   return NextResponse.json({ data });
 }
