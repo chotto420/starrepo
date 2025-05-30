@@ -82,7 +82,7 @@ export default function Home() {
             type="text"
             value={placeId}
             onChange={(e) => setPlaceId(e.target.value)}
-            placeholder="Place ID を入力"
+            placeholder="Place ID"
             className="border px-3 py-2 focus:outline-none rounded-none focus:ring-2 focus:ring-yellow-400 w-32 sm:w-64 flex-shrink-0"
           />
           <button
