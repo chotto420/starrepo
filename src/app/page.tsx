@@ -8,7 +8,38 @@ import PlaceList from "@/components/PlaceList";
 
 export default function Home() {
   const [placeId, setPlaceId] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
   const router = useRouter();
+
+  const handleRegister = async () => {
+    const id = Number(placeId);
+    if (!id || !Number.isInteger(id) || id <= 0) {
+      setMessage("正しい Place ID を入力してください");
+      return;
+    }
+    setLoading(true);
+    setMessage(null);
+    try {
+      const res = await fetch("/api/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ placeId: id }),
+      });
+      const json = await res.json();
+      if (res.ok) {
+        setMessage("登録しました");
+        setPlaceId("");
+        (await import("swr")).mutate(null); // refresh swr caches
+      } else {
+        setMessage(json.error || "登録に失敗しました");
+      }
+    } catch {
+      setMessage("登録に失敗しました");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <main className="min-h-screen p-4">
@@ -36,7 +67,15 @@ export default function Home() {
           >
             開く
           </button>
+          <button
+            onClick={handleRegister}
+            disabled={loading}
+            className="bg-green-500 text-white font-semibold px-4 py-2 rounded-none hover:bg-green-600 transition-colors disabled:opacity-50"
+          >
+            {loading ? "登録中..." : "登録"}
+          </button>
         </div>
+        {message && <p className="mt-2 text-sm text-red-600">{message}</p>}
         <Link
           href="/popular"
           className="mt-4 text-blue-600 hover:underline"
