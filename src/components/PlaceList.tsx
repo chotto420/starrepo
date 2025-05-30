@@ -18,6 +18,7 @@ type Place = {
   place_id: number;
   name: string;
   creator_name: string;
+  icon_url: string | null;
   thumbnail_url: string | null;
   visit_count: number | null;
   favorite_count: number | null;
@@ -32,7 +33,7 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-async function fetchThumbnail(placeId: number): Promise<string | null> {
+async function fetchIcon(placeId: number): Promise<string | null> {
   try {
     const res = await fetch(`https://thumbnails.roblox.com/v1/places/${placeId}/icons?size=256x256&format=Png&isCircular=false`);
     if (!res.ok) return null;
@@ -52,7 +53,7 @@ export default function PlaceList() {
       const { data, error } = await supabase
         .from("places")
         .select(
-          "place_id, name, creator_name, thumbnail_url, visit_count, favorite_count"
+          "place_id, name, creator_name, icon_url, thumbnail_url, visit_count, favorite_count"
         )
         .order("last_synced_at", { ascending: false });
 
@@ -72,11 +73,11 @@ export default function PlaceList() {
             reviews && reviews.length
               ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
               : null;
-          let thumb = p.thumbnail_url;
-          if (!thumb) {
-            thumb = await fetchThumbnail(p.place_id);
+          let icon = p.icon_url;
+          if (!icon) {
+            icon = await fetchIcon(p.place_id);
           }
-          return { ...p, thumbnail_url: thumb, average_rating: avg };
+          return { ...p, icon_url: icon, thumbnail_url: p.thumbnail_url, average_rating: avg };
         })
       );
 
@@ -94,17 +95,19 @@ export default function PlaceList() {
           onClick={() => router.push(`/place/${place.place_id}`)}
           className="cursor-pointer rounded-xl overflow-hidden shadow-lg hover:shadow-xl hover:scale-[1.02] transition transform bg-white dark:bg-gray-800"
         >
-          {place.thumbnail_url ? (
-            <img
-              src={place.thumbnail_url}
-              alt={place.name}
-              className="w-full h-48 object-cover"
-            />
-          ) : (
-            <div className="w-full h-48 bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-gray-400">
-              画像なし
-            </div>
-          )}
+          <div className="flex justify-center mt-4">
+            {place.icon_url ? (
+              <img
+                src={place.icon_url}
+                alt={place.name}
+                className="w-24 h-24 object-contain"
+              />
+            ) : (
+              <div className="w-24 h-24 bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-gray-400">
+                画像なし
+              </div>
+            )}
+          </div>
           <div className="p-4">
             <h2 className="text-lg font-semibold mb-1">{place.name}</h2>
 
