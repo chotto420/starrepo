@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useState } from "react";
 import PlaceList from "@/components/PlaceList";
+import { supabase } from "@/lib/supabase";
 
 export default function Home() {
   const [placeId, setPlaceId] = useState("");
@@ -41,6 +42,29 @@ export default function Home() {
     }
   };
 
+  const handleOpen = async () => {
+    const id = Number(placeId);
+    if (!id || !Number.isInteger(id) || id <= 0) {
+      setMessage("正しい Place ID を入力してください");
+      return;
+    }
+    setMessage(null);
+    const { data, error } = await supabase
+      .from("places")
+      .select("place_id")
+      .eq("place_id", id)
+      .maybeSingle();
+    if (error) {
+      setMessage("データベースエラーが発生しました");
+      return;
+    }
+    if (!data) {
+      setMessage("指定した Place ID は登録されていません");
+      return;
+    }
+    router.push(`/place/${placeId}`);
+  };
+
   return (
     <main className="min-h-screen p-4">
       <div className="flex flex-col items-center mb-8">
@@ -62,7 +86,7 @@ export default function Home() {
             className="border px-3 py-2 focus:outline-none flex-1 rounded-none focus:ring-2 focus:ring-yellow-400"
           />
           <button
-            onClick={() => router.push(`/place/${placeId}`)}
+            onClick={handleOpen}
             className="bg-yellow-400 text-black font-semibold px-4 py-2 rounded-none hover:bg-yellow-500 transition-colors"
           >
             開く
