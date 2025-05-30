@@ -6,7 +6,7 @@ export async function GET(req: NextRequest) {
   const placeIdParam = req.nextUrl.searchParams.get("placeId");
   const placeId = placeIdParam ? Number(placeIdParam) : null;
   if (!placeId) {
-    return NextResponse.json({ error: "placeId is required" }, { status: 400 });
+    return NextResponse.json({ error: "placeId は必須です" }, { status: 400 });
   }
 
   const { data, error } = await supabase
@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
   };
 
   if (!placeId || !rating) {
-    return NextResponse.json({ error: "placeId and rating are required" }, { status: 400 });
+    return NextResponse.json({ error: "placeId と評価は必須です" }, { status: 400 });
   }
 
   const { error } = await supabase.from("reviews").insert({

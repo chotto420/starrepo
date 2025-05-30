@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
   const id = Number(placeId);
   if (!id || !Number.isInteger(id) || id <= 0) {
     return NextResponse.json(
-      { error: "placeId must be a positive integer" },
+      { error: "placeId は正の整数である必要があります" },
       { status: 400 }
     );
   }
@@ -40,13 +40,13 @@ export async function POST(req: NextRequest) {
   );
   if (uRes.status === 404) {
     return NextResponse.json(
-      { error: "place not found" },
+      { error: "プレイスが見つかりません" },
       { status: 404 }
     );
   }
   if (!uRes.ok) {
     return NextResponse.json(
-      { error: `roblox api error: ${uRes.status}` },
+      { error: `Roblox API エラー: ${uRes.status}` },
       { status: 500 }
     );
   }
@@ -58,21 +58,21 @@ export async function POST(req: NextRequest) {
   );
   if (!gRes.ok) {
     return NextResponse.json(
-      { error: `roblox api error: ${gRes.status}` },
+      { error: `Roblox API エラー: ${gRes.status}` },
       { status: 500 }
     );
   }
   const game = ((await gRes.json()) as GameRes).data[0];
   if (!game) {
     return NextResponse.json(
-      { error: "game not found" },
+      { error: "ゲームが見つかりません" },
       { status: 404 }
     );
   }
 
   if (game.visits < 10000) {
     return NextResponse.json(
-      { error: "visits less than 10000" },
+      { error: "訪問数が 10000 未満のため登録できません" },
       { status: 400 }
     );
   }

@@ -102,7 +102,7 @@ export default function PlaceList() {
             />
           ) : (
             <div className="w-full h-48 bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-gray-400">
-              No image
+              画像なし
             </div>
           )}
           <div className="p-4">

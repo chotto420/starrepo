@@ -79,7 +79,7 @@ export default function PopularGames() {
               />
             ) : (
               <div className="w-full h-40 bg-gray-100 flex items-center justify-center text-gray-400">
-                No image
+                画像なし
               </div>
             )}
             <div className="p-4">
