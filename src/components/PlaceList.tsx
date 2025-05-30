@@ -120,8 +120,8 @@ export default function PlaceList() {
             <h2 className="text-base font-semibold truncate">{place.name}</h2>
 
             <div className="text-sm text-gray-500 dark:text-gray-400 flex flex-col sm:flex-row gap-1 sm:gap-4 sm:whitespace-nowrap">
-              <span>▶ 訪問 {formatCount(place.visit_count)}</span>
-              <span>❤ お気に入り {formatCount(place.favorite_count)}</span>
+              <span>▶ 訪問数 {formatCount(place.visit_count)}</span>
+              <span>★ お気に入り {formatCount(place.favorite_count)}</span>
             </div>
             {place.average_rating !== null ? (
               <div className="mt-2 flex items-center gap-1">
