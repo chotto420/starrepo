@@ -24,6 +24,13 @@ interface VotesRes {
   data: { id: number; upVotes: number; downVotes: number }[];
 }
 
+interface ThumbRes {
+  data: {
+    universeId: number;
+    thumbnails: { state: string; imageUrl: string }[];
+  }[];
+}
+
 export async function POST(req: NextRequest) {
   const { placeId } = (await req.json()) as { placeId?: number };
   const id = Number(placeId);
@@ -86,13 +93,40 @@ export async function POST(req: NextRequest) {
   const downVotes = voteJson?.data?.[0]?.downVotes ?? 0;
   const likeRatio = upVotes + downVotes ? upVotes / (upVotes + downVotes) : 0;
 
+  // Thumbnail
+  let thumbnailUrl = game.thumbnailUrl ?? "";
+  try {
+    const tRes = await fetch(
+      `https://thumbnails.roblox.com/v1/games/multiget/thumbnails?universeIds=${universeId}&countPerUniverse=1&size=768x432&format=Png`
+    );
+    if (tRes.ok) {
+      const tJson = (await tRes.json()) as ThumbRes;
+      const pic = tJson.data?.[0]?.thumbnails?.find((t) => t.state === "Completed");
+      if (pic) {
+        thumbnailUrl = pic.imageUrl;
+      }
+    }
+  } catch {
+    /* ignore */
+  }
+
+  // Check if the place is already registered
+  const { data: existingData, error: selectError } = await supabase
+    .from("places")
+    .select("place_id")
+    .eq("place_id", id);
+  if (selectError) {
+    return NextResponse.json({ error: selectError.message }, { status: 500 });
+  }
+  const alreadyExisted = existingData && existingData.length > 0;
+
   const { error } = await supabase.from("places").upsert(
     {
       place_id: id,
       universe_id: universeId,
       name: game.name,
       creator_name: game.creator?.name ?? "unknown",
-      thumbnail_url: game.thumbnailUrl ?? "",
+      thumbnail_url: thumbnailUrl,
       like_count: upVotes,
       dislike_count: downVotes,
       like_ratio: likeRatio,
@@ -114,5 +148,5 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error }, { status: 500 });
   }
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, alreadyExisted });
 }

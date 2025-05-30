@@ -28,7 +28,7 @@ export default function Home() {
       });
       const json = await res.json();
       if (res.ok) {
-        setMessage("登録しました");
+        setMessage(json.alreadyExisted ? "すでに登録されています" : "登録しました");
         setPlaceId("");
         (await import("swr")).mutate(null); // refresh swr caches
       } else {
