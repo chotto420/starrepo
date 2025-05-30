@@ -61,7 +61,8 @@ export default function PlaceList() {
         .select(
           "place_id, name, creator_name, icon_url, thumbnail_url, visit_count, favorite_count",
         )
-        .order("last_synced_at", { ascending: false });
+        // 最新の更新日時が新しい順に表示する
+        .order("last_updated_at", { ascending: false });
 
       if (error) {
         console.error("❌ Failed to fetch places:", error);
