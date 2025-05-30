@@ -119,7 +119,7 @@ export default function PlaceList() {
           <div className="flex-1 min-w-0">
             <h2 className="text-base font-semibold truncate">{place.name}</h2>
 
-            <div className="text-sm text-gray-500 dark:text-gray-400 flex gap-4 whitespace-nowrap">
+            <div className="text-sm text-gray-500 dark:text-gray-400 flex flex-col sm:flex-row gap-1 sm:gap-4 sm:whitespace-nowrap">
               <span>▶ 訪問 {formatCount(place.visit_count)}</span>
               <span>❤ お気に入り {formatCount(place.favorite_count)}</span>
             </div>
