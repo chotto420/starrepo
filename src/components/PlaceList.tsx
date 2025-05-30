@@ -18,6 +18,7 @@ type Place = {
   place_id: number;
   name: string;
   creator_name: string;
+  icon_url: string | null;
   thumbnail_url: string | null;
   visit_count: number | null;
   favorite_count: number | null;
@@ -29,12 +30,14 @@ interface PlaceWithRating extends Place {
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
 );
 
-async function fetchThumbnail(placeId: number): Promise<string | null> {
+async function fetchIcon(placeId: number): Promise<string | null> {
   try {
-    const res = await fetch(`https://thumbnails.roblox.com/v1/places/${placeId}/icons?size=256x256&format=Png&isCircular=false`);
+    const res = await fetch(
+      `https://thumbnails.roblox.com/v1/places/${placeId}/icons?size=256x256&format=Png&isCircular=false`,
+    );
     if (!res.ok) return null;
     const json = await res.json();
     return json?.data?.[0]?.imageUrl ?? null;
@@ -52,7 +55,7 @@ export default function PlaceList() {
       const { data, error } = await supabase
         .from("places")
         .select(
-          "place_id, name, creator_name, thumbnail_url, visit_count, favorite_count"
+          "place_id, name, creator_name, icon_url, thumbnail_url, visit_count, favorite_count",
         )
         .order("last_synced_at", { ascending: false });
 
@@ -72,12 +75,17 @@ export default function PlaceList() {
             reviews && reviews.length
               ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
               : null;
-          let thumb = p.thumbnail_url;
-          if (!thumb) {
-            thumb = await fetchThumbnail(p.place_id);
+          let icon = p.icon_url;
+          if (!icon) {
+            icon = await fetchIcon(p.place_id);
           }
-          return { ...p, thumbnail_url: thumb, average_rating: avg };
-        })
+          return {
+            ...p,
+            icon_url: icon,
+            thumbnail_url: p.thumbnail_url,
+            average_rating: avg,
+          };
+        }),
       );
 
       setPlaces(withRatings);
@@ -87,31 +95,30 @@ export default function PlaceList() {
   }, []);
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
       {places.map((place) => (
         <div
           key={place.place_id}
           onClick={() => router.push(`/place/${place.place_id}`)}
-          className="cursor-pointer rounded-xl overflow-hidden shadow-lg hover:shadow-xl hover:scale-[1.02] transition transform bg-white dark:bg-gray-800"
+          className="cursor-pointer flex items-center gap-3 rounded-lg shadow hover:shadow-md hover:scale-[1.02] transition transform bg-white dark:bg-gray-800 p-3"
         >
-          {place.thumbnail_url ? (
+          {place.icon_url ? (
             <img
-              src={place.thumbnail_url}
+              src={place.icon_url}
               alt={place.name}
-              className="w-full h-48 object-cover"
+              className="w-12 h-12 object-contain flex-shrink-0"
             />
           ) : (
-            <div className="w-full h-48 bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-gray-400">
+            <div className="w-12 h-12 bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-gray-400 flex-shrink-0">
               画像なし
             </div>
           )}
-          <div className="p-4">
-            <h2 className="text-lg font-semibold mb-1">{place.name}</h2>
+          <div className="flex-1 min-w-0">
+            <h2 className="text-base font-semibold truncate">{place.name}</h2>
 
             <div className="text-sm text-gray-500 dark:text-gray-400 flex gap-4">
               <span>▶ 訪問 {formatCount(place.visit_count)}</span>
               <span>❤ お気に入り {formatCount(place.favorite_count)}</span>
-
             </div>
             {place.average_rating !== null ? (
               <div className="mt-2">
