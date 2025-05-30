@@ -106,17 +106,17 @@ export default function PlaceList() {
             <img
               src={place.icon_url}
               alt={place.name}
-              className="w-12 h-12 object-contain flex-shrink-0"
+              className="w-16 h-16 object-contain flex-shrink-0"
             />
           ) : (
-            <div className="w-12 h-12 bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-gray-400 flex-shrink-0">
+            <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-gray-400 flex-shrink-0">
               画像なし
             </div>
           )}
           <div className="flex-1 min-w-0">
             <h2 className="text-base font-semibold truncate">{place.name}</h2>
 
-            <div className="text-sm text-gray-500 dark:text-gray-400 flex gap-4">
+            <div className="text-sm text-gray-500 dark:text-gray-400 flex gap-4 flex-wrap">
               <span>▶ 訪問 {formatCount(place.visit_count)}</span>
               <span>❤ お気に入り {formatCount(place.favorite_count)}</span>
             </div>
