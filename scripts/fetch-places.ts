@@ -1,16 +1,8 @@
+// -----------------------------------------------------------------------------
+//  fetch-places.ts ── DB に登録済みの Place を週次同期（アイコン対応版）
+// -----------------------------------------------------------------------------
 import dotenv from "dotenv";
 import { createClient } from "@supabase/supabase-js";
-
-// -----------------------------------------------------------------------------
-//  fetch-places.ts  ── DB に登録済みの Place を週次同期
-// -----------------------------------------------------------------------------
-// * places テーブルに入っている place_id / universe_id を取得し、
-//   ・universe_id が欠損していれば補完
-//   ・サムネイル / 投票数 / ゲーム詳細 をまとめて取得
-//   ・指標計算した上で upsert
-// * Hard‑coded な placeIds 配列は完全廃止
-// * Supabase 型エラー回避のため、ジェネリクスは使わず cast で処理
-// -----------------------------------------------------------------------------
 
 dotenv.config({ path: ".env.local" });
 
@@ -22,11 +14,10 @@ const supabase = createClient(
 // -----------------------------------------------------------------------------
 // 型定義
 // -----------------------------------------------------------------------------
-
 type PlaceToUniverse = Record<number, number>;
 
-interface ThumbRes {
-  data: { universeId: number; thumbnails: { state: string; imageUrl: string }[] }[];
+interface IconRes {
+  data: { targetId: number; state: string; imageUrl: string }[];
 }
 
 interface VotesRes {
@@ -62,7 +53,6 @@ interface PlaceRow {
 // -----------------------------------------------------------------------------
 // 汎用ユーティリティ
 // -----------------------------------------------------------------------------
-
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 
 async function fetchRetry(url: string, retry = 3) {
@@ -75,9 +65,8 @@ async function fetchRetry(url: string, retry = 3) {
 }
 
 // -----------------------------------------------------------------------------
-// Step‑0  DB から対象 Place 一覧をロード
+// Step-0  DB から対象 Place 一覧をロード
 // -----------------------------------------------------------------------------
-
 async function loadPlaceRows(): Promise<PlaceRow[]> {
   const { data, error } = await supabase
     .from("places")
@@ -88,9 +77,8 @@ async function loadPlaceRows(): Promise<PlaceRow[]> {
 }
 
 // -----------------------------------------------------------------------------
-// Step‑1  Place → Universe 変換（欠損のみ API 呼び出し）
+// Step-1  Place → Universe 変換（欠損のみ API 呼び出し）
 // -----------------------------------------------------------------------------
-
 async function toUniverseMap(ids: readonly number[]): Promise<PlaceToUniverse> {
   const out: PlaceToUniverse = {};
   for (const id of ids) {
@@ -110,28 +98,25 @@ async function toUniverseMap(ids: readonly number[]): Promise<PlaceToUniverse> {
 }
 
 // -----------------------------------------------------------------------------
-// Step‑2a  サムネイルまとめて取得
+// Step-2a  正方形アイコン取得
 // -----------------------------------------------------------------------------
-
-async function fetchThumbs(uIds: number[]) {
+async function fetchIcons(uIds: number[]) {
   const out: Record<number, string> = {};
   const CHUNK = 100;
   for (let i = 0; i < uIds.length; i += CHUNK) {
     const chunk = uIds.slice(i, i + CHUNK);
     const r = await fetchRetry(
-      "https://thumbnails.roblox.com/v1/games/multiget/thumbnails" +
-        `?universeIds=${chunk.join(",")} &countPerUniverse=1&size=768x432&format=Png`
+      "https://thumbnails.roblox.com/v1/games/icons" +
+        `?universeIds=${chunk.join(",")}` +
+        "&size=512x512&format=Png&isCircular=false"
     );
     if (!r.ok) {
-      console.warn(`⚠️ thumb: ${r.status}`);
+      console.warn(`⚠️ icon: ${r.status}`);
       continue;
     }
-    const { data } = (await r.json()) as ThumbRes;
-    for (const g of data) {
-      const pic = g.thumbnails.find(t => t.state === "Completed");
-      if (pic) {
-        out[g.universeId] = pic.imageUrl;
-      }
+    const { data } = (await r.json()) as IconRes;
+    for (const ico of data) {
+      if (ico.state === "Completed") out[ico.targetId] = ico.imageUrl;
     }
     await sleep(100);
   }
@@ -139,9 +124,8 @@ async function fetchThumbs(uIds: number[]) {
 }
 
 // -----------------------------------------------------------------------------
-// Step‑2b  Votes まとめて取得
+// Step-2b  Votes まとめて取得
 // -----------------------------------------------------------------------------
-
 async function fetchVotes(uIds: number[]) {
   const up: Record<number, number> = {};
   const down: Record<number, number> = {};
@@ -166,9 +150,8 @@ async function fetchVotes(uIds: number[]) {
 }
 
 // -----------------------------------------------------------------------------
-// Step‑3  Main 処理
+// Step-3  Main 処理
 // -----------------------------------------------------------------------------
-
 async function run() {
   /* DB から Place 一覧 */
   const rows = await loadPlaceRows();
@@ -196,9 +179,9 @@ async function run() {
   /* Universe ID 一覧 */
   const uniIds = [...new Set(Object.values(place2Uni))];
 
-  /* サムネ & Votes を並列取得 */
-  const [thumbMap, { up: upMap, down: downMap }] = await Promise.all([
-    fetchThumbs(uniIds),
+  /* アイコン & Votes を並列取得 */
+  const [iconMap, { up: upMap, down: downMap }] = await Promise.all([
+    fetchIcons(uniIds),
     fetchVotes(uniIds),
   ]);
 
@@ -234,7 +217,8 @@ async function run() {
         universe_id: uId,
         name: game.name,
         creator_name: game.creator?.name ?? "unknown",
-        thumbnail_url: thumbMap[uId] ?? game.thumbnailUrl ?? "",
+        icon_url: iconMap[uId] ?? "",         // ★ 新アイコン列
+        thumbnail_url: game.thumbnailUrl ?? "",// （既存サムネが欲しければ残す）
         like_count: up,
         dislike_count: down,
         like_ratio: ratio,
