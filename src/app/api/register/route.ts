@@ -93,22 +93,6 @@ export async function POST(req: NextRequest) {
   const downVotes = voteJson?.data?.[0]?.downVotes ?? 0;
   const likeRatio = upVotes + downVotes ? upVotes / (upVotes + downVotes) : 0;
 
-  // Thumbnail
-  let thumbnailUrl = game.thumbnailUrl ?? "";
-  try {
-    const tRes = await fetch(
-      `https://thumbnails.roblox.com/v1/games/multiget/thumbnails?universeIds=${universeId}&countPerUniverse=1&size=768x432&format=Png`
-    );
-    if (tRes.ok) {
-      const tJson = (await tRes.json()) as ThumbRes;
-      const pic = tJson.data?.[0]?.thumbnails?.find((t) => t.state === "Completed");
-      if (pic) {
-        thumbnailUrl = pic.imageUrl;
-      }
-    }
-  } catch {
-    /* ignore */
-  }
 
   // Check if the place is already registered
   const { data: existingData, error: selectError } = await supabase
