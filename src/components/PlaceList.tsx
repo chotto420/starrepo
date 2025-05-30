@@ -26,6 +26,7 @@ type Place = {
 
 interface PlaceWithRating extends Place {
   average_rating: number | null;
+  review_count: number;
 }
 
 const supabase = createClient(
@@ -71,9 +72,10 @@ export default function PlaceList() {
             .from("reviews")
             .select("rating")
             .eq("place_id", p.place_id);
+          const reviewCount = reviews ? reviews.length : 0;
           const avg =
-            reviews && reviews.length
-              ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
+            reviewCount > 0
+              ? reviews!.reduce((sum, r) => sum + r.rating, 0) / reviewCount
               : null;
           let icon = p.icon_url;
           if (!icon) {
@@ -84,6 +86,7 @@ export default function PlaceList() {
             icon_url: icon,
             thumbnail_url: p.thumbnail_url,
             average_rating: avg,
+            review_count: reviewCount,
           };
         }),
       );
@@ -116,13 +119,14 @@ export default function PlaceList() {
           <div className="flex-1 min-w-0">
             <h2 className="text-base font-semibold truncate">{place.name}</h2>
 
-            <div className="text-sm text-gray-500 dark:text-gray-400 flex gap-4 flex-wrap">
+            <div className="text-sm text-gray-500 dark:text-gray-400 flex gap-4 whitespace-nowrap">
               <span>▶ 訪問 {formatCount(place.visit_count)}</span>
               <span>❤ お気に入り {formatCount(place.favorite_count)}</span>
             </div>
             {place.average_rating !== null ? (
-              <div className="mt-2">
+              <div className="mt-2 flex items-center gap-1">
                 <RatingStars rating={place.average_rating} />
+                <span className="text-xs text-gray-600 dark:text-gray-400">({place.review_count}件)</span>
               </div>
             ) : (
               <p className="text-sm mt-2 text-gray-500">評価なし</p>
