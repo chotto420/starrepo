@@ -70,6 +70,14 @@ export default function PlacePage() {
             alt={game.name}
             className="mt-2 w-full rounded-lg"
           />
+          <a
+            href={`https://www.roblox.com/games/${placeId}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-4 inline-block bg-green-500 hover:bg-green-600 text-white font-semibold px-4 py-2 rounded-md transition-colors"
+          >
+            プレイする
+          </a>
         </div>
       )}
       <div className="mb-4">
