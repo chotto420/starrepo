@@ -96,13 +96,20 @@ export async function POST(req: NextRequest) {
   }
   const alreadyExisted = existingData && existingData.length > 0;
 
+  const thumbRes = await fetch(
+    "https://thumbnails.roblox.com/v1/games/multiget/thumbnails" +
+      `?universeIds=${universeId}&countPerUniverse=1&size=768x432&format=Png`
+  );
+  const thumbJson = thumbRes.ok ? ((await thumbRes.json()) as any) : undefined;
+  const thumbUrl = thumbJson?.data?.[0]?.thumbnails?.find((t: any) => t.state === "Completed")?.imageUrl ?? game.thumbnailUrl ?? "";
+
   const { error } = await supabase.from("places").upsert(
     {
       place_id: id,
       universe_id: universeId,
       name: game.name,
       creator_name: game.creator?.name ?? "unknown",
-      thumbnail_url: game.thumbnailUrl ?? "",
+      thumbnail_url: thumbUrl,
       like_count: upVotes,
       dislike_count: downVotes,
       like_ratio: likeRatio,
