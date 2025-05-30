@@ -9,7 +9,7 @@ export async function GET() {
   const { data: rows, error } = await supabase
     .from("places")
     .select(
-      "place_id, name, creator_name, thumbnail_url, price, playing, like_ratio, visit_count, favorite_count, last_updated_at"
+      "place_id, name, creator_name, icon_url, thumbnail_url, price, playing, like_ratio, visit_count, favorite_count, last_updated_at"
     );
 
   if (error || !rows) {
@@ -52,6 +52,7 @@ export async function GET() {
       place_id,
       name,
       creator_name,
+      icon_url,
       thumbnail_url,
       price,
       visit_count,
@@ -60,6 +61,7 @@ export async function GET() {
       place_id,
       name,
       creator_name,
+      icon_url,
       thumbnail_url,
       price,
       visit_count,
