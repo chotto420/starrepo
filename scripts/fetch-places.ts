@@ -1,6 +1,17 @@
 import dotenv from "dotenv";
 import { createClient } from "@supabase/supabase-js";
 
+// -----------------------------------------------------------------------------
+//  fetch-places.ts  ── DB に登録済みの Place を週次同期
+// -----------------------------------------------------------------------------
+// * places テーブルに入っている place_id / universe_id を取得し、
+//   ・universe_id が欠損していれば補完
+//   ・サムネイル / 投票数 / ゲーム詳細 をまとめて取得
+//   ・指標計算した上で upsert
+// * Hard‑coded な placeIds 配列は完全廃止
+// * Supabase 型エラー回避のため、ジェネリクスは使わず cast で処理
+// -----------------------------------------------------------------------------
+
 dotenv.config({ path: ".env.local" });
 
 const supabase = createClient(
@@ -8,9 +19,9 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-/* ---------------------------------------------------------------------------
-   型定義
---------------------------------------------------------------------------- */
+// -----------------------------------------------------------------------------
+// 型定義
+// -----------------------------------------------------------------------------
 
 type PlaceToUniverse = Record<number, number>;
 
@@ -43,55 +54,49 @@ interface GameRes {
   }[];
 }
 
-type PlaceRow = { place_id: number; universe_id: number | null };
+interface PlaceRow {
+  place_id: number;
+  universe_id: number | null;
+}
 
-/* ---------------------------------------------------------------------------
-   汎用ユーティリティ
---------------------------------------------------------------------------- */
+// -----------------------------------------------------------------------------
+// 汎用ユーティリティ
+// -----------------------------------------------------------------------------
 
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 
-async function fetchRetry(url: string, retry = 3): Promise<Response> {
+async function fetchRetry(url: string, retry = 3) {
   for (let i = 0; i <= retry; i++) {
     const res = await fetch(url);
     if (res.status !== 429 || i === retry) return res;
-    await sleep(1_000 * (i + 1)); // エクスポネンシャルバックオフ
+    await sleep(1_000 * (i + 1));
   }
   throw new Error("unreachable");
 }
 
-/* ---------------------------------------------------------------------------
-   Step‑0 : Supabase から Place / Universe 一覧を取得（ページネーション対応）
---------------------------------------------------------------------------- */
+// -----------------------------------------------------------------------------
+// Step‑0  DB から対象 Place 一覧をロード
+// -----------------------------------------------------------------------------
 
-async function loadPlaceRows(limit = 1000): Promise<PlaceRow[]> {
-  let from = 0;
-  const out: PlaceRow[] = [];
+async function loadPlaceRows(): Promise<PlaceRow[]> {
+  const { data, error } = await supabase
+    .from("places")
+    .select("place_id, universe_id");
 
-  while (true) {
-    const { data, error } = await supabase
-      .from<PlaceRow>("places")
-      .select("place_id, universe_id")
-      .range(from, from + limit - 1);
-
-    if (error) throw error;
-    if (!data?.length) break;
-
-    out.push(...data);
-    if (data.length < limit) break; // 最終ページ
-    from += limit;
-  }
-  return out;
+  if (error) throw error;
+  return (data ?? []) as PlaceRow[];
 }
 
-/* ---------------------------------------------------------------------------
-   Step‑1 : Place → Universe 変換（未解決 ID だけ API を叩く）
---------------------------------------------------------------------------- */
+// -----------------------------------------------------------------------------
+// Step‑1  Place → Universe 変換（欠損のみ API 呼び出し）
+// -----------------------------------------------------------------------------
 
 async function toUniverseMap(ids: readonly number[]): Promise<PlaceToUniverse> {
   const out: PlaceToUniverse = {};
   for (const id of ids) {
-    const r = await fetchRetry(`https://apis.roblox.com/universes/v1/places/${id}/universe`);
+    const r = await fetchRetry(
+      `https://apis.roblox.com/universes/v1/places/${id}/universe`
+    );
     if (!r.ok) {
       console.warn(`❌ place ${id}: ${r.status}`);
       continue;
@@ -104,18 +109,18 @@ async function toUniverseMap(ids: readonly number[]): Promise<PlaceToUniverse> {
   return out;
 }
 
-/* ---------------------------------------------------------------------------
-   Step‑2a : サムネ取得
---------------------------------------------------------------------------- */
+// -----------------------------------------------------------------------------
+// Step‑2a  サムネイルまとめて取得
+// -----------------------------------------------------------------------------
 
-async function fetchThumbs(uIds: number[]): Promise<Record<number, string>> {
+async function fetchThumbs(uIds: number[]) {
   const out: Record<number, string> = {};
   const CHUNK = 100;
   for (let i = 0; i < uIds.length; i += CHUNK) {
     const chunk = uIds.slice(i, i + CHUNK);
     const r = await fetchRetry(
       "https://thumbnails.roblox.com/v1/games/multiget/thumbnails" +
-        `?universeIds=${chunk.join(",")}&countPerUniverse=1&size=768x432&format=Png`
+        `?universeIds=${chunk.join(",")} &countPerUniverse=1&size=768x432&format=Png`
     );
     if (!r.ok) {
       console.warn(`⚠️ thumb: ${r.status}`);
@@ -124,25 +129,28 @@ async function fetchThumbs(uIds: number[]): Promise<Record<number, string>> {
     const { data } = (await r.json()) as ThumbRes;
     for (const g of data) {
       const pic = g.thumbnails.find(t => t.state === "Completed");
-      if (pic) out[g.universeId] = pic.imageUrl;
+      if (pic) {
+        out[g.universeId] = pic.imageUrl;
+      }
     }
     await sleep(100);
   }
   return out;
 }
 
-/* ---------------------------------------------------------------------------
-   Step‑2b : いいね／バッド取得
---------------------------------------------------------------------------- */
+// -----------------------------------------------------------------------------
+// Step‑2b  Votes まとめて取得
+// -----------------------------------------------------------------------------
 
-async function fetchVotes(uIds: number[]): Promise<{ up: Record<number, number>; down: Record<number, number> }> {
+async function fetchVotes(uIds: number[]) {
   const up: Record<number, number> = {};
   const down: Record<number, number> = {};
   const CHUNK = 100;
-
   for (let i = 0; i < uIds.length; i += CHUNK) {
     const chunk = uIds.slice(i, i + CHUNK);
-    const r = await fetchRetry(`https://games.roblox.com/v1/games/votes?universeIds=${chunk.join(",")}`);
+    const r = await fetchRetry(
+      `https://games.roblox.com/v1/games/votes?universeIds=${chunk.join(",")}`
+    );
     if (!r.ok) {
       console.warn(`⚠️ votes: ${r.status}`);
       continue;
@@ -157,38 +165,53 @@ async function fetchVotes(uIds: number[]): Promise<{ up: Record<number, number>;
   return { up, down };
 }
 
-/* ---------------------------------------------------------------------------
-   Step‑3 : ゲーム詳細取得 & upsert
---------------------------------------------------------------------------- */
+// -----------------------------------------------------------------------------
+// Step‑3  Main 処理
+// -----------------------------------------------------------------------------
 
 async function run() {
+  /* DB から Place 一覧 */
   const rows = await loadPlaceRows();
   if (!rows.length) {
     console.log("⚠️ places テーブルが空です");
     return;
   }
 
-  /* 事前にわかっている Universe ID は再計算しない */
-  const placeIds = rows.map(r => r.place_id);
+  /* 初期マップ（universe_id が入っているものはキャッシュ扱い）*/
   const place2UniInit: PlaceToUniverse = Object.fromEntries(
     rows.filter(r => r.universe_id).map(r => [r.place_id, r.universe_id!])
   );
 
-  const unknownIds = placeIds.filter(id => !(id in place2UniInit));
+  const unknownIds = rows
+    .filter(r => r.universe_id == null)
+    .map(r => r.place_id);
+
   const place2UniNew = await toUniverseMap(unknownIds);
-  const place2Uni = { ...place2UniInit, ...place2UniNew };
+
+  const place2Uni: PlaceToUniverse = {
+    ...place2UniInit,
+    ...place2UniNew,
+  };
+
+  /* Universe ID 一覧 */
   const uniIds = [...new Set(Object.values(place2Uni))];
 
+  /* サムネ & Votes を並列取得 */
   const [thumbMap, { up: upMap, down: downMap }] = await Promise.all([
     fetchThumbs(uniIds),
     fetchVotes(uniIds),
   ]);
 
-  for (const pId of placeIds) {
+  // -------------------------------------------------------------------------
+  // Upsert ループ
+  // -------------------------------------------------------------------------
+  for (const { place_id: pId } of rows) {
     const uId = place2Uni[pId];
-    if (!uId) continue; // Universe 取れなかった
+    if (!uId) continue; // 取得失敗している場合はスキップ
 
-    const gRes = await fetchRetry(`https://games.roblox.com/v1/games?universeIds=${uId}`);
+    const gRes = await fetchRetry(
+      `https://games.roblox.com/v1/games?universeIds=${uId}`
+    );
     if (!gRes.ok) {
       console.warn(`❌ games ${uId}: ${gRes.status}`);
       continue;
@@ -199,10 +222,12 @@ async function run() {
       continue;
     }
 
+    /* 指標計算 */
     const up = upMap[uId] ?? game.upVotes ?? 0;
     const down = downMap[uId] ?? 0;
     const ratio = up + down ? up / (up + down) : 0;
 
+    /* Upsert */
     const { error } = await supabase.from("places").upsert(
       {
         place_id: pId,
@@ -227,13 +252,17 @@ async function run() {
       { onConflict: "place_id" }
     );
 
-    error ? console.error("🔥", error) : console.log(`✅ ${game.name}`);
+    error
+      ? console.error("🔥", error)
+      : console.log(`✅ ${game.name}`);
+
     await sleep(100);
   }
+
+  console.log("🎉 Sync finished");
 }
 
-/* ---------------------------------------------------------------------------
-   エントリポイント
---------------------------------------------------------------------------- */
-
 run().catch(console.error);
+
+// ユーティリティとしてスクリプト全体を module として扱う
+export {};
