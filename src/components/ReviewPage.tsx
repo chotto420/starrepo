@@ -40,7 +40,7 @@ export default function ReviewPage({
       </Link>
 
       {/* カード */}
-      <div className="mb-6 bg-white dark:bg-gray-800 p-4 rounded-xl shadow">
+      <div className="mt-12 mb-6 bg-white dark:bg-gray-800 p-4 rounded-xl shadow">
         <h1 className="text-2xl font-bold mb-2">{title}</h1>
 
         {/* ★ ここだけ変更 */}

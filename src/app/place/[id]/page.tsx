@@ -63,13 +63,21 @@ export default function PlacePage() {
         トップへ戻る
       </Link>
       {game && (
-        <div className="mb-6 bg-white dark:bg-gray-800 p-4 rounded-xl shadow">
+        <div className="mt-12 mb-6 bg-white dark:bg-gray-800 p-4 rounded-xl shadow">
           <h2 className="text-2xl font-bold mb-2">{game.name}</h2>
           <img
             src={game.thumbnailUrl}
             alt={game.name}
             className="mt-2 w-full rounded-lg"
           />
+          <a
+            href={`https://www.roblox.com/games/${placeId}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-4 inline-block bg-green-500 hover:bg-green-600 text-white font-semibold px-4 py-2 rounded-md transition-colors"
+          >
+            プレイする
+          </a>
         </div>
       )}
       <div className="mb-4">
