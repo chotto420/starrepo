@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
 import RatingStars from "./RatingStars";
@@ -29,6 +29,8 @@ interface PlaceWithRating extends Place {
   review_count: number;
 }
 
+type SortOption = "recent" | "rating" | "visit" | "favorite";
+
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -49,6 +51,7 @@ async function fetchIcon(placeId: number): Promise<string | null> {
 
 export default function PlaceList() {
   const [places, setPlaces] = useState<PlaceWithRating[]>([]);
+  const [sort, setSort] = useState<SortOption>("recent");
   const router = useRouter();
 
   useEffect(() => {
@@ -97,9 +100,44 @@ export default function PlaceList() {
     fetchPlaces();
   }, []);
 
+  const sortedPlaces = useMemo(() => {
+    const arr = [...places];
+    switch (sort) {
+      case "rating":
+        arr.sort((a, b) => (b.average_rating ?? -1) - (a.average_rating ?? -1));
+        break;
+      case "visit":
+        arr.sort((a, b) => (b.visit_count ?? 0) - (a.visit_count ?? 0));
+        break;
+      case "favorite":
+        arr.sort((a, b) => (b.favorite_count ?? 0) - (a.favorite_count ?? 0));
+        break;
+      default:
+        break;
+    }
+    return arr;
+  }, [places, sort]);
+
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-      {places.map((place) => (
+    <>
+      <div className="flex justify-end mb-4 text-sm">
+        <label className="mr-2" htmlFor="sort-select">
+          並び替え:
+        </label>
+        <select
+          id="sort-select"
+          value={sort}
+          onChange={(e) => setSort(e.target.value as SortOption)}
+          className="border rounded px-2 py-1"
+        >
+          <option value="recent">更新順</option>
+          <option value="rating">評価順</option>
+          <option value="visit">訪問数順</option>
+          <option value="favorite">お気に入り順</option>
+        </select>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+      {sortedPlaces.map((place) => (
         <div
           key={place.place_id}
           onClick={() => router.push(`/place/${place.place_id}`)}
@@ -135,5 +173,6 @@ export default function PlaceList() {
         </div>
       ))}
     </div>
+    </>
   );
 }
