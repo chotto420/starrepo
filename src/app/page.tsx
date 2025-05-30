@@ -75,7 +75,7 @@ export default function Home() {
           </span>
         </h1>
         <p className="text-gray-600 mb-6">
-          Roblox プレイスのレビューをみんなで共有しよう！
+          プレイスのレビューをみんなで共有しよう！
         </p>
         <div className="flex items-center shadow-md rounded-lg overflow-hidden">
           <input
