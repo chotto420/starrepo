@@ -33,6 +33,10 @@ interface ThumbnailsRes {
   data: { universeId: number; thumbnails: Thumbnail[] }[];
 }
 
+interface IconsRes {
+  data: { targetId: number; state: string; imageUrl: string }[];
+}
+
 export async function POST(req: NextRequest) {
   const { placeId } = (await req.json()) as { placeId?: number };
   const id = Number(placeId);
@@ -105,6 +109,14 @@ export async function POST(req: NextRequest) {
   }
   const alreadyExisted = existingData && existingData.length > 0;
 
+  const iconRes = await fetch(
+    `https://thumbnails.roblox.com/v1/games/icons?universeIds=${universeId}&size=512x512&format=Png&isCircular=false`
+  );
+  const iconJson = iconRes.ok
+    ? ((await iconRes.json()) as IconsRes)
+    : undefined;
+  const iconUrl = iconJson?.data?.find((i) => i.state === "Completed")?.imageUrl ?? "";
+
   const thumbRes = await fetch(
     "https://thumbnails.roblox.com/v1/games/multiget/thumbnails" +
       `?universeIds=${universeId}&countPerUniverse=1&size=768x432&format=Png`
@@ -120,6 +132,7 @@ export async function POST(req: NextRequest) {
       universe_id: universeId,
       name: game.name,
       creator_name: game.creator?.name ?? "unknown",
+      icon_url: iconUrl,
       thumbnail_url: thumbUrl,
       like_count: upVotes,
       dislike_count: downVotes,
