@@ -77,13 +77,13 @@ export default function Home() {
         <p className="text-gray-600 mb-6">
           プレイスのレビューをみんなで共有しよう！
         </p>
-        <div className="flex items-center shadow-md rounded-lg overflow-hidden">
+        <div className="flex items-center shadow-md rounded-lg overflow-hidden max-w-md w-full">
           <input
             type="text"
             value={placeId}
             onChange={(e) => setPlaceId(e.target.value)}
             placeholder="Place ID を入力"
-            className="border px-3 py-2 focus:outline-none flex-1 rounded-none focus:ring-2 focus:ring-yellow-400"
+            className="border px-3 py-2 focus:outline-none rounded-none focus:ring-2 focus:ring-yellow-400 w-32 sm:w-64 flex-shrink-0"
           />
           <button
             onClick={handleOpen}
