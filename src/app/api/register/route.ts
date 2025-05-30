@@ -86,6 +86,16 @@ export async function POST(req: NextRequest) {
   const downVotes = voteJson?.data?.[0]?.downVotes ?? 0;
   const likeRatio = upVotes + downVotes ? upVotes / (upVotes + downVotes) : 0;
 
+  // Check if the place is already registered
+  const { data: existingData, error: selectError } = await supabase
+    .from("places")
+    .select("place_id")
+    .eq("place_id", id);
+  if (selectError) {
+    return NextResponse.json({ error: selectError.message }, { status: 500 });
+  }
+  const alreadyExisted = existingData && existingData.length > 0;
+
   const { error } = await supabase.from("places").upsert(
     {
       place_id: id,
@@ -114,5 +124,5 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error }, { status: 500 });
   }
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, alreadyExisted });
 }
