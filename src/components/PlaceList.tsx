@@ -55,47 +55,59 @@ export default function PlaceList() {
   const router = useRouter();
 
   useEffect(() => {
-    async function fetchPlaces() {
-      const { data, error } = await supabase
-        .from("places")
-        .select(
-          "place_id, name, creator_name, icon_url, thumbnail_url, visit_count, favorite_count",
-        )
-        // 最新の更新日時が新しい順に表示する
-        .order("last_updated_at", { ascending: false });
+    function sleep(ms: number) {
+      return new Promise((resolve) => setTimeout(resolve, ms));
+    }
 
-      if (error) {
-        console.error("❌ Failed to fetch places:", error);
-        return;
+    async function fetchPlaces(retries = 2) {
+      for (let attempt = 0; attempt <= retries; attempt++) {
+        const { data, error } = await supabase
+          .from("places")
+          .select(
+            "place_id, name, creator_name, icon_url, thumbnail_url, visit_count, favorite_count",
+          )
+          // 最新の更新日時が新しい順に表示する
+          .order("last_updated_at", { ascending: false });
+
+        if (!error) {
+          const placeData = data || [];
+          const withRatings = await Promise.all(
+            placeData.map(async (p) => {
+              const { data: reviews } = await supabase
+                .from("reviews")
+                .select("rating")
+                .eq("place_id", p.place_id);
+              const reviewCount = reviews ? reviews.length : 0;
+              const avg =
+                reviewCount > 0
+                  ? reviews!.reduce((sum, r) => sum + r.rating, 0) / reviewCount
+                  : null;
+              let icon = p.icon_url;
+              if (!icon) {
+                icon = await fetchIcon(p.place_id);
+              }
+              return {
+                ...p,
+                icon_url: icon,
+                thumbnail_url: p.thumbnail_url,
+                average_rating: avg,
+                review_count: reviewCount,
+              };
+            }),
+          );
+
+          setPlaces(withRatings);
+          return;
+        }
+
+        console.error(
+          `❌ Failed to fetch places (attempt ${attempt + 1}/${retries + 1}):`,
+          error,
+        );
+        if (attempt < retries) {
+          await sleep(1000 * (attempt + 1));
+        }
       }
-
-      const placeData = data || [];
-      const withRatings = await Promise.all(
-        placeData.map(async (p) => {
-          const { data: reviews } = await supabase
-            .from("reviews")
-            .select("rating")
-            .eq("place_id", p.place_id);
-          const reviewCount = reviews ? reviews.length : 0;
-          const avg =
-            reviewCount > 0
-              ? reviews!.reduce((sum, r) => sum + r.rating, 0) / reviewCount
-              : null;
-          let icon = p.icon_url;
-          if (!icon) {
-            icon = await fetchIcon(p.place_id);
-          }
-          return {
-            ...p,
-            icon_url: icon,
-            thumbnail_url: p.thumbnail_url,
-            average_rating: avg,
-            review_count: reviewCount,
-          };
-        }),
-      );
-
-      setPlaces(withRatings);
     }
 
     fetchPlaces();
