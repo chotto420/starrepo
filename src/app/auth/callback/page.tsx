@@ -5,32 +5,36 @@ import { supabase } from "@/lib/supabase";
 
 export default function AuthCallbackPage() {
   useEffect(() => {
-    const exchange = async () => {
-      const code = new URLSearchParams(location.search).get("code");
+    (async () => {
+      // ① クエリ文字列から code を取得
+      const code = new URLSearchParams(window.location.search).get("code");
       if (!code) {
-        console.error("Missing code in callback URL");
-        alert("ログインに失敗しました");
+        alert("認証コード(code)が URL に見つかりません");
+        console.error("callback URL", window.location.href);
         return;
       }
+
       try {
-        const { error } = await supabase.auth.exchangeCodeForSession(code);
+        // ② 認可コードを Supabase へ渡してセッション化
+        const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+
+        // ③ デバッグログ出力
+        console.log("★ exchange result", { data, error });
+
         if (error) {
           console.error("exchangeCodeForSession error", error);
-          alert("ログインに失敗しました");
+          alert(`ログイン失敗: ${error.message}`);
           return;
         }
-        location.replace("/");
-      } catch (err) {
-        console.error("exchangeCodeForSession error", err);
-        alert("ログインに失敗しました");
-      }
-    };
-    exchange();
-  }, []);
 
-  return (
-    <main className="min-h-screen flex items-center justify-center p-4">
-      <p>Signing in…</p>
-    </main>
-  );
+        // ④ 成功したらトップへ
+        window.location.replace("/");
+      } catch (e) {
+        console.error("unexpected error", e);
+        alert("ログイン処理で予期せぬエラーが発生しました");
+      }
+    })();
+  }, []); // ← 必ず依存配列を空に
+
+  return <p style={{ textAlign: "center" }}>Signing&nbsp;in…</p>;
 }
