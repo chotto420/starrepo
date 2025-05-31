@@ -20,7 +20,15 @@ export default function MyPage() {
         // but the state expects `string | null`.
         setUserEmail(data.user.email ?? null);
       } else {
-        router.replace("/login");
+        // Cookie appears enabled but no user was returned.
+        // Inform the user before navigating away so they can adjust settings.
+        if (navigator.cookieEnabled) {
+          setMessage(
+            "ログイン情報を取得できませんでした。Cookie の設定を確認してください。"
+          );
+        } else {
+          router.replace("/login");
+        }
       }
     });
   }, [router]);
