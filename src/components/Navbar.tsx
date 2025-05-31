@@ -32,8 +32,21 @@ export default function Navbar() {
               <span className="text-white text-lg font-semibold">STAR REPO</span>
             </a>
           </Link>
+          <nav className="hidden md:flex space-x-6">
+            {links.map(({ href, label }) => (
+              <Link key={href} href={href} passHref>
+                <a
+                  className={`text-white hover:text-gray-200 px-3 py-2 transition rounded-md ${
+                    isActive(href) ? "bg-yellow-400 text-black" : ""
+                  }`}
+                >
+                  {label}
+                </a>
+              </Link>
+            ))}
+          </nav>
           <button
-            className="text-white hover:text-gray-200 py-2 px-4 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-400"
+            className="md:hidden text-white hover:text-gray-200 py-2 px-4 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-400"
             aria-label={isOpen ? "メニューを閉じる" : "メニューを開く"}
             onClick={() => setIsOpen(!isOpen)}
           >
@@ -50,17 +63,17 @@ export default function Navbar() {
 
       {isOpen && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-60 z-50"
+          className="md:hidden fixed inset-0 bg-black bg-opacity-60 z-50"
           onClick={() => setIsOpen(false)}
         />
       )}
 
       <div
         className={`
-          fixed top-0 right-0 min-h-screen bg-gradient-to-b from-blue-900 via-blue-800 to-gray-900
+          md:hidden fixed top-0 right-0 min-h-screen bg-gradient-to-b from-blue-900 via-blue-800 to-gray-900
           transform transition-transform duration-300 ease-in-out z-60
           ${isOpen ? "translate-x-0" : "translate-x-full"}
-          w-4/5 md:w-1/3 rounded-tl-xl rounded-tr-xl shadow-lg
+          w-4/5 rounded-tl-xl rounded-tr-xl shadow-lg
         `}
       >
         <nav className="pt-8 pb-8">
