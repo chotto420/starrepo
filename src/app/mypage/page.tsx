@@ -15,6 +15,7 @@ export default function MyPage() {
       return;
     }
 
+
     const timeout = setTimeout(() => {
       setMessage("ログイン情報を取得できませんでした。ページを再読み込みしてください。");
     }, 10000);
@@ -48,6 +49,7 @@ export default function MyPage() {
     return () => {
       clearTimeout(timeout);
     };
+
   }, [router]);
 
   const handleLogout = async () => {
