@@ -11,16 +11,20 @@ const links = [
 
 export default function Navbar() {
   const pathname = usePathname() ?? "/";
-  const [open, setOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
 
   const isActive = (href: string) =>
     pathname === href || pathname.startsWith(`${href}/`);
 
   return (
-    <header className="fixed top-0 inset-x-0 z-50 bg-white dark:bg-gray-800 shadow">
-      <nav className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="flex h-16 items-center justify-between">
-          <Link href="/" className="flex items-center text-xl font-bold">
+    <header className="fixed top-0 inset-x-0 z-50 h-14 bg-white dark:bg-gray-800 shadow-md">
+      <nav className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 h-full">
+        <div className="flex h-full items-center justify-between">
+          <Link
+            href="/"
+            aria-label="STAR REPO ホームへ戻る"
+            className="flex items-center py-2 px-4 text-xl font-bold focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-400"
+          >
             <span className="text-yellow-400 text-2xl mr-1">★</span>
             <span>STAR REPO</span>
           </Link>
@@ -41,8 +45,9 @@ export default function Navbar() {
             ))}
           </div>
           <button
-            onClick={() => setOpen(!open)}
-            className="md:hidden p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
+            onClick={() => setIsOpen(!isOpen)}
+            aria-label={isOpen ? "メニューを閉じる" : "メニューを開く"}
+            className="md:hidden py-2 px-4 rounded hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-400"
           >
             <span className="sr-only">Toggle menu</span>
             <svg
@@ -53,7 +58,7 @@ export default function Navbar() {
               strokeWidth={1.5}
               stroke="currentColor"
             >
-              {open ? (
+              {isOpen ? (
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -69,26 +74,30 @@ export default function Navbar() {
             </svg>
           </button>
         </div>
-        {open && (
-          <div className="md:hidden pb-3 pt-2 space-y-1">
-            {links.map(({ href, label }) => (
-              <Link
-                key={href}
-                href={href}
-                onClick={() => setOpen(false)}
-                className={
-                  (isActive(href)
-                    ? "font-bold text-yellow-600"
-                    : "text-gray-700 dark:text-gray-200") +
-                  " block px-3 py-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
-                }
-              >
-                {label}
-              </Link>
-            ))}
-          </div>
-        )}
       </nav>
+      {isOpen && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 z-20 md:hidden"
+          onClick={() => setIsOpen(false)}
+        />
+      )}
+      {isOpen && (
+        <nav className="fixed top-0 right-0 w-64 h-full bg-blue-900 z-30 shadow-lg md:hidden">
+          <ul className="flex flex-col mt-14">
+            {links.map(({ href, label }) => (
+              <li key={href} className="px-6 py-4 hover:bg-blue-800">
+                <Link
+                  href={href}
+                  onClick={() => setIsOpen(false)}
+                  className="text-white text-lg"
+                >
+                  {label}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      )}
     </header>
   );
 }
