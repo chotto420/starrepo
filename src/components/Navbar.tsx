@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { MenuIcon, XIcon } from "@heroicons/react/outline";
 
 const links = [
   { href: "/", label: "ホーム" },
@@ -11,16 +12,20 @@ const links = [
 
 export default function Navbar() {
   const pathname = usePathname() ?? "/";
-  const [open, setOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
 
   const isActive = (href: string) =>
     pathname === href || pathname.startsWith(`${href}/`);
 
   return (
-    <header className="fixed top-0 inset-x-0 z-50 bg-white dark:bg-gray-800 shadow">
-      <nav className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="flex h-16 items-center justify-between">
-          <Link href="/" className="flex items-center text-xl font-bold">
+    <>
+      <header className="fixed top-0 inset-x-0 z-10 h-14 bg-blue-900 shadow-md">
+        <nav className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 h-full flex items-center justify-between">
+          <Link
+            href="/"
+            aria-label="STAR REPO ホームへ戻る"
+            className="flex items-center py-2 px-4 text-xl font-bold focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-400"
+          >
             <span className="text-yellow-400 text-2xl mr-1">★</span>
             <span>STAR REPO</span>
           </Link>
@@ -29,66 +34,60 @@ export default function Navbar() {
               <Link
                 key={href}
                 href={href}
-                className={
-                  (isActive(href)
-                    ? "font-bold text-yellow-600"
-                    : "text-gray-700 dark:text-gray-200") +
-                  " hover:text-yellow-500 transition-colors"
-                }
+                className={`${
+                  isActive(href) ? "text-yellow-400" : "text-gray-100"
+                } hover:text-yellow-300 transition-colors`}
               >
                 {label}
               </Link>
             ))}
           </div>
           <button
-            onClick={() => setOpen(!open)}
-            className="md:hidden p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
+            onClick={() => setIsOpen(!isOpen)}
+            aria-label={isOpen ? "メニューを閉じる" : "メニューを開く"}
+            className="md:hidden py-2 px-4 rounded focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-400"
           >
-            <span className="sr-only">Toggle menu</span>
-            <svg
-              className="h-6 w-6"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={1.5}
-              stroke="currentColor"
-            >
-              {open ? (
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              ) : (
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"
-                />
-              )}
-            </svg>
+            {isOpen ? (
+              <div className="bg-white bg-opacity-10 rounded-full p-1 hover:bg-opacity-20 transition">
+                <XIcon className="h-6 w-6 text-white" />
+              </div>
+            ) : (
+              <MenuIcon className="h-6 w-6 text-white" />
+            )}
           </button>
-        </div>
-        {open && (
-          <div className="md:hidden pb-3 pt-2 space-y-1">
-            {links.map(({ href, label }) => (
+      </nav>
+    </header>
+
+    {isOpen && (
+      <div
+        className="fixed inset-0 bg-black bg-opacity-60 z-20"
+        onClick={() => setIsOpen(false)}
+      />
+    )}
+
+    <div
+      className={`fixed top-0 right-0 h-full bg-gradient-to-b from-blue-800 to-gray-900 transform transition-transform duration-300 ease-in-out z-30 ${
+        isOpen ? "translate-x-0" : "translate-x-full"
+      } w-4/5 sm:w-full md:w-1/3 rounded-l-xl shadow-lg`}
+    >
+      <nav className="mt-14">
+        <ul>
+          {links.map(({ href, label }) => (
+            <li key={href} className="border-b border-gray-700">
               <Link
-                key={href}
                 href={href}
-                onClick={() => setOpen(false)}
-                className={
-                  (isActive(href)
-                    ? "font-bold text-yellow-600"
-                    : "text-gray-700 dark:text-gray-200") +
-                  " block px-3 py-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
-                }
+                onClick={() => setIsOpen(false)}
+                className={`block text-gray-100 text-lg py-4 px-6 hover:bg-gray-700 hover:text-white transition ${
+                  isActive(href) ? "text-yellow-400" : ""
+                }`}
               >
                 {label}
               </Link>
-            ))}
-          </div>
-        )}
+            </li>
+          ))}
+        </ul>
       </nav>
-    </header>
+    </div>
+    </>
   );
 }
