@@ -57,20 +57,22 @@ export default function Navbar() {
 
       <div
         className={`
-          fixed top-0 right-0 h-full bg-gradient-to-b from-blue-800 to-gray-900
+          fixed top-0 right-0 min-h-screen bg-gradient-to-b from-blue-800 via-blue-700 to-gray-900
           transform transition-transform duration-300 ease-in-out z-60
           ${isOpen ? "translate-x-0" : "translate-x-full"}
-          w-4/5 sm:w-full md:w-1/3 rounded-l-xl shadow-lg
+          w-4/5 md:w-1/3 rounded-tl-xl rounded-tr-xl shadow-lg
         `}
       >
         <nav className="mt-14">
           <ul>
             {links.map(({ href, label }) => (
-              <li key={href} className="border-b border-gray-700">
+              <li key={href} className="border-b border-gray-600">
                 <Link href={href} passHref>
                   <a
-                    className={`block text-gray-100 text-lg py-4 px-6 hover:bg-gray-700 hover:text-white transition ${
-                      isActive(href) ? "text-yellow-400" : ""
+                    className={`block text-lg py-5 px-6 transition ${
+                      isActive(href)
+                        ? "text-yellow-400 bg-yellow-400 bg-opacity-10"
+                        : "text-gray-100 hover:bg-gray-700 hover:text-white"
                     }`}
                     onClick={() => setIsOpen(false)}
                   >
