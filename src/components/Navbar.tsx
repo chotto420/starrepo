@@ -10,6 +10,7 @@ const links = [
   { href: "/popular", label: "人気プレイス" },
   { href: "/review", label: "レビューを書く" },
   { href: "/mypage", label: "マイページ" },
+  { href: "/login", label: "ログイン" },
 ];
 
 export default function Navbar() {
