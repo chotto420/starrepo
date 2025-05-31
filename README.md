@@ -43,4 +43,18 @@ Create a `.env.local` file with the following keys so the Supabase client can co
 NEXT_PUBLIC_SUPABASE_URL=<your-supabase-url>
 NEXT_PUBLIC_SUPABASE_ANON_KEY=<your-anon-key>
 ```
+
+### Google OAuth Setup
+
+Enable the Google provider in the Supabase dashboard and enter the Google OAuth
+client ID and secret you created. Use the following values when configuring the
+OAuth client in Google Cloud:
+
+* **Authorized JavaScript origins**: `http://localhost:3000`
+* **Authorized redirect URI**:
+  `https://<YOUR-PROJECT-REF>.supabase.co/auth/v1/callback`
+
+Replace `<YOUR-PROJECT-REF>` with your Supabase project identifier. Once the
+credentials are saved in Supabase, users can sign in with Google using the
+`/login` page.
 "# starrepo"
