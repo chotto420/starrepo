@@ -17,10 +17,14 @@ export default function Navbar() {
     pathname === href || pathname.startsWith(`${href}/`);
 
   return (
-    <header className="fixed top-0 inset-x-0 z-50 bg-white dark:bg-gray-800 shadow">
-      <nav className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="flex h-16 items-center justify-between">
-          <Link href="/" className="flex items-center text-xl font-bold">
+    <header className="fixed top-0 inset-x-0 z-50 h-14 bg-white dark:bg-gray-800 shadow-md">
+      <nav className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 h-full">
+        <div className="flex h-full items-center justify-between">
+          <Link
+            href="/"
+            aria-label="STAR REPO ホームへ戻る"
+            className="flex items-center py-2 px-4 text-xl font-bold focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-400"
+          >
             <span className="text-yellow-400 text-2xl mr-1">★</span>
             <span>STAR REPO</span>
           </Link>
@@ -42,7 +46,8 @@ export default function Navbar() {
           </div>
           <button
             onClick={() => setOpen(!open)}
-            className="md:hidden p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
+            aria-label="メニューを開く"
+            className="md:hidden py-2 px-4 rounded hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-400"
           >
             <span className="sr-only">Toggle menu</span>
             <svg
