@@ -9,12 +9,7 @@ export default function AuthCallbackPage() {
   useEffect(() => {
     const exchange = async () => {
       try {
-        const code = new URLSearchParams(window.location.search).get("code");
-        if (!code) {
-          setError("認証コードが見つかりません");
-          return;
-        }
-        const { error } = await supabase.auth.exchangeCodeForSession(code);
+        const { error } = await supabase.auth.exchangeCodeForSession();
         if (error) {
           console.error("exchangeCodeForSession error", error);
           alert("ログインに失敗しました");
@@ -22,7 +17,7 @@ export default function AuthCallbackPage() {
           return;
         }
         location.replace("/");
-      } catch (err) {
+      } catch (err: unknown) {
         console.error("exchangeCodeForSession error", err);
         alert("ログインに失敗しました");
         setError("認証に失敗しました");
