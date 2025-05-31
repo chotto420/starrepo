@@ -9,12 +9,10 @@ export default function AuthCallbackPage() {
   useEffect(() => {
     const exchange = async () => {
       try {
-        const code = new URLSearchParams(window.location.search).get("code");
-        if (!code) {
-          setError("認証コードが見つかりません");
-          return;
-        }
-        const { error } = await supabase.auth.exchangeCodeForSession(code);
+        // exchangeCodeForSession should infer the code from the URL when using
+        // the PKCE flow. Cast to any to allow omitting the parameter even if
+        // the installed @supabase/supabase-js typings still expect one.
+        const { error } = await (supabase.auth.exchangeCodeForSession as any)();
         if (error) {
           console.error("exchangeCodeForSession error", error);
           alert("ログインに失敗しました");
