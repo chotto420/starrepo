@@ -6,9 +6,14 @@ import { supabase } from "@/lib/supabase";
 
 export default function MyPage() {
   const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
   const router = useRouter();
 
   useEffect(() => {
+    if (!navigator.cookieEnabled) {
+      setMessage("ブラウザの Cookie が無効になっているためログインできません。");
+      return;
+    }
     supabase.auth.getUser().then(({ data }) => {
       if (data.user) {
         // `data.user.email` can be `undefined` in some cases,
@@ -24,6 +29,10 @@ export default function MyPage() {
     await supabase.auth.signOut();
     router.push("/login");
   };
+
+  if (message) {
+    return <p className="p-4">{message}</p>;
+  }
 
   if (!userEmail) {
     return <p className="p-4">Loading...</p>;
