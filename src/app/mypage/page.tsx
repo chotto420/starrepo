@@ -14,15 +14,40 @@ export default function MyPage() {
       setMessage("ブラウザの Cookie が無効になっているためログインできません。");
       return;
     }
-    supabase.auth.getUser().then(({ data }) => {
-      if (data.user) {
-        // `data.user.email` can be `undefined` in some cases,
-        // but the state expects `string | null`.
-        setUserEmail(data.user.email ?? null);
-      } else {
-        router.replace("/login");
-      }
-    });
+
+    const timeout = setTimeout(() => {
+      setMessage("ログイン情報を取得できませんでした。ページを再読み込みしてください。");
+    }, 10000);
+
+    supabase.auth
+      .getUser()
+      .then(({ data }) => {
+        clearTimeout(timeout);
+        if (data.user) {
+          // `data.user.email` can be `undefined` in some cases,
+          // but the state expects `string | null`.
+          setUserEmail(data.user.email ?? null);
+        } else {
+          // Cookie appears enabled but no user was returned.
+          // Inform the user before navigating away so they can adjust settings.
+          if (navigator.cookieEnabled) {
+            setMessage(
+              "ログイン情報を取得できませんでした。Cookie の設定を確認してください。"
+            );
+          } else {
+            router.replace("/login");
+          }
+        }
+      })
+      .catch((error) => {
+        console.error("getUser failed", error);
+        clearTimeout(timeout);
+        setMessage("ユーザー情報の取得中にエラーが発生しました。");
+      });
+
+    return () => {
+      clearTimeout(timeout);
+    };
   }, [router]);
 
   const handleLogout = async () => {
