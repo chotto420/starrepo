@@ -11,7 +11,10 @@ export default function LoginPage() {
     try {
       await supabase.auth.signInWithOAuth({
         provider: "google",
-        options: { redirectTo: `${window.location.origin}/auth/callback` },
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
+        flowType: "pkce",
       });
     } catch (error) {
       console.error("signInWithOAuth error", error);
