@@ -1,15 +1,33 @@
 name: build
 
-on: [push, pull_request]
+on:
+  push:
+    branches: [ main ]
+  pull_request:
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
+    # ── Secrets を環境変数にバインド ──
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: 'npm'
+
+      # ここで依存をクリーンインストール
       - run: npm ci
+
+      # ★ 追加：実際にリンクされている supabase-js のバージョンを表示
+      - name: Print supabase-js version
+        run: npm ls @supabase/supabase-js
+
+      # 通常のビルド
       - run: npm run build
