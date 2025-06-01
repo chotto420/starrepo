@@ -2,22 +2,24 @@
 
 import { supabase } from "@/lib/supabase";
 
-export default function LoginPage() {
-  const handleLogin = async () => {
+export default function Login() {
+  const handleSignIn = async () => {
     try {
-      await supabase.auth.signInWithOAuth({
+      const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
-        options: { redirectTo: `${window.location.origin}/auth/callback` },
+        options: {
+          redirectTo: `${location.origin}/auth/callback`,
+        },
       });
-    } catch (error) {
-      console.error("signInWithOAuth error", error);
-      alert("Googleログインに失敗しました");
+      if (error) console.error(error);
+    } catch (e) {
+      console.error("signInWithOAuth error", e);
     }
   };
 
   return (
     <main className="min-h-screen flex items-center justify-center p-4">
-      <button onClick={handleLogin}>Googleでログイン</button>
+      <button onClick={handleSignIn}>Googleでログイン</button>
     </main>
   );
 }
