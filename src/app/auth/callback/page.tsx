@@ -6,31 +6,23 @@ import { supabase } from "@/lib/supabase";
 export default function AuthCallbackPage() {
   useEffect(() => {
     (async () => {
-      const params = new URLSearchParams(window.location.search);
-      const code = params.get("code");
-      const state = params.get("state");
-
-      // ★ デバッグ: URL と localStorage を確認
-      console.log("★ URL code/state", { code, state });
-      console.log("★ localStorage keys", Object.keys(localStorage));
-      console.log(
-        "★ code_verifier",
-        localStorage.getItem("supabase.auth.code_verifier")
-      );
-
-      if (!code) {
-        alert("認可コード(code)が見つかりません");
-        return;
-      }
-
       try {
-        const { data, error } = await supabase.auth.exchangeCodeForSession(code);
-        console.log("★ exchange result", { data, error });
+        // ① URL から code / state を読み取り、セッション化
+        const { data, error } = await supabase.auth.getSessionFromUrl({
+          storeSession: true,
+          redirectTo: "/",
+        });
+
+        // ② デバッグログ（必要なら残す）
+        console.log("★ getSessionFromUrl", { data, error });
 
         if (error) {
+          console.error(error);
           alert(`ログイン失敗: ${error.message}`);
           return;
         }
+
+        // ③ 正常ならトップへ
         window.location.replace("/");
       } catch (e) {
         console.error("unexpected error", e);
