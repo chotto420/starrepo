@@ -7,6 +7,7 @@ export default function Login() {
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
+        flowType: "pkce",
         options: {
           redirectTo: `${location.origin}/auth/callback`,
         },
