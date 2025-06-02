@@ -6,7 +6,6 @@ import { supabase } from '@/lib/supabase'
 export default function Callback() {
   useEffect(() => {
     (async () => {
-      // @ts-expect-error getSessionFromUrl は実行時に存在する
       const { error } = await (supabase.auth as any).getSessionFromUrl({ storeSession: true })
       if (error) {
         alert(`ログイン失敗: ${error.message}`)
