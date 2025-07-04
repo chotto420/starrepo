@@ -4,32 +4,9 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { createClient } from "@supabase/supabase-js";
 import RatingStars from "../../components/RatingStars";
-
-function formatCount(count: number | null): string {
-  if (count === null || count === undefined) return "-";
-  if (count >= 10000) {
-    const val = count / 10000;
-    return `${val.toFixed(val >= 10 ? 0 : 1).replace(/\.0$/, "")}万`;
-  }
-  return count.toLocaleString();
-}
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
-async function fetchIcon(placeId: number): Promise<string | null> {
-  try {
-    const res = await fetch(`https://thumbnails.roblox.com/v1/places/${placeId}/icons?size=256x256&format=Png&isCircular=false`);
-    if (!res.ok) return null;
-    const json = await res.json();
-    return json?.data?.[0]?.imageUrl ?? null;
-  } catch {
-    return null;
-  }
-}
+import { formatCount, fetchIcon } from "@/lib/utils";
+import { fetchReviewStats } from "@/lib/reviews";
 
 
 type Game = {
@@ -60,24 +37,13 @@ export default function PopularGames() {
 
       const withRatings = await Promise.all(
         data.map(async (g) => {
-          const { data: reviews } = await supabase
-            .from("reviews")
-            .select("rating")
-            .eq("place_id", g.place_id);
-          const reviewCount = reviews ? reviews.length : 0;
-          const avg =
-            reviewCount > 0
-              ? reviews!.reduce((sum, r) => sum + r.rating, 0) / reviewCount
-              : null;
-          let icon = g.icon_url;
-          if (!icon) {
-            icon = await fetchIcon(g.place_id);
-          }
+          const { average, count } = await fetchReviewStats(g.place_id);
+          const icon = g.icon_url ?? (await fetchIcon(g.place_id));
           return {
             ...g,
             icon_url: icon,
-            average_rating: avg,
-            review_count: reviewCount,
+            average_rating: average,
+            review_count: count,
           } as GameWithRating;
         })
       );

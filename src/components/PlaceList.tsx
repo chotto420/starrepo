@@ -2,17 +2,12 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@supabase/supabase-js";
+import { supabase } from "@/lib/supabase";
+import { formatCount, fetchIcon } from "@/lib/utils";
+import { fetchReviewStats } from "@/lib/reviews";
 import RatingStars from "./RatingStars";
 
-function formatCount(count: number | null): string {
-  if (count === null || count === undefined) return "-";
-  if (count >= 10000) {
-    const val = count / 10000;
-    return `${val.toFixed(val >= 10 ? 0 : 1).replace(/\.0$/, "")}万`;
-  }
-  return count.toLocaleString();
-}
+type SortOption = "recent" | "rating" | "visit" | "favorite";
 
 type Place = {
   place_id: number;
@@ -29,25 +24,6 @@ interface PlaceWithRating extends Place {
   review_count: number;
 }
 
-type SortOption = "recent" | "rating" | "visit" | "favorite";
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-);
-
-async function fetchIcon(placeId: number): Promise<string | null> {
-  try {
-    const res = await fetch(
-      `https://thumbnails.roblox.com/v1/places/${placeId}/icons?size=256x256&format=Png&isCircular=false`,
-    );
-    if (!res.ok) return null;
-    const json = await res.json();
-    return json?.data?.[0]?.imageUrl ?? null;
-  } catch {
-    return null;
-  }
-}
 
 export default function PlaceList() {
   const [places, setPlaces] = useState<PlaceWithRating[]>([]);
@@ -73,25 +49,14 @@ export default function PlaceList() {
           const placeData = data || [];
           const withRatings = await Promise.all(
             placeData.map(async (p) => {
-              const { data: reviews } = await supabase
-                .from("reviews")
-                .select("rating")
-                .eq("place_id", p.place_id);
-              const reviewCount = reviews ? reviews.length : 0;
-              const avg =
-                reviewCount > 0
-                  ? reviews!.reduce((sum, r) => sum + r.rating, 0) / reviewCount
-                  : null;
-              let icon = p.icon_url;
-              if (!icon) {
-                icon = await fetchIcon(p.place_id);
-              }
+              const { average, count } = await fetchReviewStats(p.place_id);
+              const icon = p.icon_url ?? (await fetchIcon(p.place_id));
               return {
                 ...p,
                 icon_url: icon,
                 thumbnail_url: p.thumbnail_url,
-                average_rating: avg,
-                review_count: reviewCount,
+                average_rating: average,
+                review_count: count,
               };
             }),
           );
