@@ -8,7 +8,7 @@ export default function Callback() {
 
   useEffect(() => {
     ;(async () => {
-      const code = searchParams.get('code')
+      const code = searchParams?.get('code')
       if (!code) {
         alert('認証コードが見つかりません')
         return
