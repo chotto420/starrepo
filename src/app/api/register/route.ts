@@ -1,159 +1,118 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
+import { getRobloxGameData } from "@/lib/roblox";
 
-interface GameRes {
-  data: {
-    id: number;
-    name: string;
-    visits: number;
-    playing: number;
-    favoritedCount: number;
-    maxPlayers: number;
-    created: string;
-    updated: string;
-    genre: number;
-    price: number;
-    isSponsored: boolean;
-    upVotes?: number;
-    thumbnailUrl?: string;
-    creator?: { name: string };
-  }[];
-}
+// Simple in-memory rate limiting (for production, use Redis)
+const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
 
-interface VotesRes {
-  data: { id: number; upVotes: number; downVotes: number }[];
-}
+function checkRateLimit(ip: string): boolean {
+    const now = Date.now();
+    const limit = rateLimitMap.get(ip);
 
-interface Thumbnail {
-  imageUrl: string;
-  state: string;
-}
+    if (!limit || now > limit.resetTime) {
+        rateLimitMap.set(ip, { count: 1, resetTime: now + 60000 }); // 1 minute window
+        return true;
+    }
 
-interface ThumbnailsRes {
-  data: { universeId: number; thumbnails: Thumbnail[] }[];
-}
+    if (limit.count >= 50) { // Increased from 5 to 50
+        return false;
+    }
 
-interface IconsRes {
-  data: { targetId: number; state: string; imageUrl: string }[];
+    limit.count++;
+    return true;
 }
 
 export async function POST(req: NextRequest) {
-  const { placeId } = (await req.json()) as { placeId?: number };
-  const id = Number(placeId);
-  if (!id || !Number.isInteger(id) || id <= 0) {
-    return NextResponse.json(
-      { error: "placeId は正の整数である必要があります" },
-      { status: 400 }
-    );
-  }
+    try {
+        // Rate limiting
+        const ip = req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "unknown";
+        if (!checkRateLimit(ip)) {
+            return NextResponse.json(
+                { error: "レート制限に達しました。しばらく待ってから再度お試しください。" },
+                { status: 429 }
+            );
+        }
 
-  // Get universe ID
-  const uRes = await fetch(
-    `https://apis.roblox.com/universes/v1/places/${id}/universe`
-  );
-  if (uRes.status === 404) {
-    return NextResponse.json(
-      { error: "プレイスが見つかりません" },
-      { status: 404 }
-    );
-  }
-  if (!uRes.ok) {
-    return NextResponse.json(
-      { error: `Roblox API エラー: ${uRes.status}` },
-      { status: 500 }
-    );
-  }
-  const { universeId } = (await uRes.json()) as { universeId: number };
+        const { placeId } = await req.json();
 
-  // Get game info
-  const gRes = await fetch(
-    `https://games.roblox.com/v1/games?universeIds=${universeId}`
-  );
-  if (!gRes.ok) {
-    return NextResponse.json(
-      { error: `Roblox API エラー: ${gRes.status}` },
-      { status: 500 }
-    );
-  }
-  const game = ((await gRes.json()) as GameRes).data[0];
-  if (!game) {
-    return NextResponse.json(
-      { error: "ゲームが見つかりません" },
-      { status: 404 }
-    );
-  }
+        // Input validation
+        if (!placeId || typeof placeId !== "string") {
+            return NextResponse.json({ error: "Place IDを入力してください" }, { status: 400 });
+        }
 
-  if (game.visits < 10000) {
-    return NextResponse.json(
-      { error: "訪問数が 10000 未満のため登録できません" },
-      { status: 400 }
-    );
-  }
+        // Length check
+        if (placeId.length > 20) {
+            return NextResponse.json({ error: "Place IDが長すぎます" }, { status: 400 });
+        }
 
-  // Votes
-  const vRes = await fetch(
-    `https://games.roblox.com/v1/games/votes?universeIds=${universeId}`
-  );
-  const voteJson = vRes.ok ? ((await vRes.json()) as VotesRes) : undefined;
-  const upVotes = voteJson?.data?.[0]?.upVotes ?? game.upVotes ?? 0;
-  const downVotes = voteJson?.data?.[0]?.downVotes ?? 0;
-  const likeRatio = upVotes + downVotes ? upVotes / (upVotes + downVotes) : 0;
+        // Regex check - only digits
+        if (!/^\d+$/.test(placeId)) {
+            return NextResponse.json({ error: "Place IDは数字のみで入力してください" }, { status: 400 });
+        }
 
-  // Check if the place is already registered
-  const { data: existingData, error: selectError } = await supabase
-    .from("places")
-    .select("place_id")
-    .eq("place_id", id);
-  if (selectError) {
-    return NextResponse.json({ error: selectError.message }, { status: 500 });
-  }
-  const alreadyExisted = existingData && existingData.length > 0;
+        const id = Number(placeId);
 
-  const iconRes = await fetch(
-    `https://thumbnails.roblox.com/v1/games/icons?universeIds=${universeId}&size=512x512&format=Png&isCircular=false`
-  );
-  const iconJson = iconRes.ok
-    ? ((await iconRes.json()) as IconsRes)
-    : undefined;
-  const iconUrl = iconJson?.data?.find((i) => i.state === "Completed")?.imageUrl ?? "";
+        // Range check
+        if (id <= 0 || id > Number.MAX_SAFE_INTEGER) {
+            return NextResponse.json({ error: "無効なPlace IDです" }, { status: 400 });
+        }
 
-  const thumbRes = await fetch(
-    "https://thumbnails.roblox.com/v1/games/multiget/thumbnails" +
-      `?universeIds=${universeId}&countPerUniverse=1&size=768x432&format=Png`
-  );
-  const thumbJson = thumbRes.ok
-    ? ((await thumbRes.json()) as ThumbnailsRes)
-    : undefined;
-  const thumbUrl = thumbJson?.data?.[0]?.thumbnails?.find((t: Thumbnail) => t.state === "Completed")?.imageUrl ?? game.thumbnailUrl ?? "";
+        // Check if already exists
+        const { data: existing } = await supabase
+            .from("places")
+            .select("place_id")
+            .eq("place_id", id)
+            .single();
 
-  const { error } = await supabase.from("places").upsert(
-    {
-      place_id: id,
-      universe_id: universeId,
-      name: game.name,
-      creator_name: game.creator?.name ?? "unknown",
-      icon_url: iconUrl,
-      thumbnail_url: thumbUrl,
-      like_count: upVotes,
-      dislike_count: downVotes,
-      like_ratio: likeRatio,
-      visit_count: game.visits,
-      favorite_count: game.favoritedCount,
-      playing: game.playing,
-      max_players: game.maxPlayers,
-      genre: game.genre,
-      price: game.price,
-      is_sponsored: game.isSponsored,
-      first_released_at: game.created,
-      last_updated_at: game.updated,
-      last_synced_at: new Date().toISOString(),
-    },
-    { onConflict: "place_id" }
-  );
+        if (existing) {
+            return NextResponse.json({
+                message: "このゲームは既に登録されています",
+                placeId: id,
+                alreadyExists: true
+            });
+        }
 
-  if (error) {
-    return NextResponse.json({ error }, { status: 500 });
-  }
+        // Fetch from Roblox
+        const gameData = await getRobloxGameData(id);
+        if (!gameData) {
+            return NextResponse.json({
+                error: "Robloxでゲームが見つかりませんでした。Place IDを確認してください。"
+            }, { status: 404 });
+        }
 
-  return NextResponse.json({ ok: true, alreadyExisted });
+        // Insert into DB
+        const { error } = await supabase.from("places").insert({
+            place_id: gameData.placeId,
+            universe_id: gameData.universeId,
+            name: gameData.name,
+            description: gameData.description,
+            creator_name: gameData.creatorName,
+            visit_count: gameData.visits,
+            playing: gameData.playing,
+            favorite_count: gameData.favorites,
+            like_count: gameData.upVotes,
+            dislike_count: gameData.downVotes,
+            icon_url: gameData.iconUrl,
+            thumbnail_url: gameData.thumbnailUrl,
+            price: gameData.price,
+            genre: gameData.genre,
+            first_released_at: gameData.created,
+            last_updated_at: gameData.updated,
+            last_synced_at: new Date().toISOString(),
+        });
+
+        if (error) {
+            console.error("DB Insert Error:", error);
+            return NextResponse.json({ error: "データベースエラーが発生しました" }, { status: 500 });
+        }
+
+        return NextResponse.json({
+            message: "ゲームを登録しました！",
+            placeId: id,
+            gameName: gameData.name
+        });
+    } catch (error) {
+        console.error("Register Error:", error);
+        return NextResponse.json({ error: "サーバーエラーが発生しました" }, { status: 500 });
+    }
 }

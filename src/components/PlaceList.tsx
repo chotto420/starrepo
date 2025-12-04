@@ -1,191 +1,165 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@supabase/supabase-js";
-import RatingStars from "./RatingStars";
+import { createClient } from "@/lib/supabase/client";
+import { getGenreName } from "@/lib/roblox";
 
-function formatCount(count: number | null): string {
-  if (count === null || count === undefined) return "-";
-  if (count >= 10000) {
-    const val = count / 10000;
-    return `${val.toFixed(val >= 10 ? 0 : 1).replace(/\.0$/, "")}万`;
-  }
-  return count.toLocaleString();
-}
+const supabase = createClient();
 
 type Place = {
-  place_id: number;
-  name: string;
-  creator_name: string;
-  icon_url: string | null;
-  thumbnail_url: string | null;
-  visit_count: number | null;
-  favorite_count: number | null;
+    place_id: number;
+    name: string;
+    creator_name: string;
+    thumbnail_url: string | null;
+    visit_count: number;
+    favorite_count: number;
+    genre: string | null;
+    average_rating?: number;
 };
 
-interface PlaceWithRating extends Place {
-  average_rating: number | null;
-  review_count: number;
-}
-
-type SortOption = "recent" | "rating" | "visit" | "favorite";
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-);
-
-async function fetchIcon(placeId: number): Promise<string | null> {
-  try {
-    const res = await fetch(
-      `https://thumbnails.roblox.com/v1/places/${placeId}/icons?size=256x256&format=Png&isCircular=false`,
-    );
-    if (!res.ok) return null;
-    const json = await res.json();
-    return json?.data?.[0]?.imageUrl ?? null;
-  } catch {
-    return null;
-  }
-}
+const ITEMS_PER_PAGE = 24;
 
 export default function PlaceList() {
-  const [places, setPlaces] = useState<PlaceWithRating[]>([]);
-  const [sort, setSort] = useState<SortOption>("recent");
-  const router = useRouter();
+    const [places, setPlaces] = useState<Place[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [loadingMore, setLoadingMore] = useState(false);
+    const [hasMore, setHasMore] = useState(true);
+    const [page, setPage] = useState(0);
+    const router = useRouter();
 
-  useEffect(() => {
-    function sleep(ms: number) {
-      return new Promise((resolve) => setTimeout(resolve, ms));
-    }
+    useEffect(() => {
+        fetchPlaces(0);
+    }, []);
 
-    async function fetchPlaces(retries = 2) {
-      for (let attempt = 0; attempt <= retries; attempt++) {
-        const { data, error } = await supabase
-          .from("places")
-          .select(
-            "place_id, name, creator_name, icon_url, thumbnail_url, visit_count, favorite_count",
-          )
-          // 最新の更新日時が新しい順に表示する
-          .order("last_updated_at", { ascending: false });
-
-        if (!error) {
-          const placeData = data || [];
-          const withRatings = await Promise.all(
-            placeData.map(async (p) => {
-              const { data: reviews } = await supabase
-                .from("reviews")
-                .select("rating")
-                .eq("place_id", p.place_id);
-              const reviewCount = reviews ? reviews.length : 0;
-              const avg =
-                reviewCount > 0
-                  ? reviews!.reduce((sum, r) => sum + r.rating, 0) / reviewCount
-                  : null;
-              let icon = p.icon_url;
-              if (!icon) {
-                icon = await fetchIcon(p.place_id);
-              }
-              return {
-                ...p,
-                icon_url: icon,
-                thumbnail_url: p.thumbnail_url,
-                average_rating: avg,
-                review_count: reviewCount,
-              };
-            }),
-          );
-
-          setPlaces(withRatings);
-          return;
+    async function fetchPlaces(pageNum: number) {
+        const isInitialLoad = pageNum === 0;
+        if (isInitialLoad) {
+            setLoading(true);
+        } else {
+            setLoadingMore(true);
         }
 
-        console.error(
-          `❌ Failed to fetch places (attempt ${attempt + 1}/${retries + 1}):`,
-          error,
+        const from = pageNum * ITEMS_PER_PAGE;
+        const to = from + ITEMS_PER_PAGE - 1;
+
+        const { data, error, count } = await supabase
+            .from("places")
+            .select("*", { count: "exact" })
+            .gte("favorite_count", 50)
+            .order("last_updated_at", { ascending: false })
+            .range(from, to);
+
+        if (data) {
+            if (isInitialLoad) {
+                setPlaces(data);
+            } else {
+                setPlaces(prev => [...prev, ...data]);
+            }
+
+            // Check if there are more items
+            if (count !== null) {
+                setHasMore((pageNum + 1) * ITEMS_PER_PAGE < count);
+            }
+        }
+
+        setLoading(false);
+        setLoadingMore(false);
+    }
+
+    const loadMore = () => {
+        const nextPage = page + 1;
+        setPage(nextPage);
+        fetchPlaces(nextPage);
+    };
+
+    if (loading) {
+        return (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {[...Array(8)].map((_, i) => (
+                    <div key={i} className="bg-slate-800 rounded-xl overflow-hidden border border-slate-700 animate-pulse">
+                        <div className="h-48 bg-slate-700"></div>
+                        <div className="p-4 space-y-2">
+                            <div className="h-4 bg-slate-700 rounded w-3/4"></div>
+                            <div className="h-3 bg-slate-700 rounded w-1/2"></div>
+                        </div>
+                    </div>
+                ))}
+            </div>
         );
-        if (attempt < retries) {
-          await sleep(1000 * (attempt + 1));
-        }
-      }
     }
 
-    fetchPlaces();
-  }, []);
-
-  const sortedPlaces = useMemo(() => {
-    const arr = [...places];
-    switch (sort) {
-      case "rating":
-        arr.sort((a, b) => (b.average_rating ?? -1) - (a.average_rating ?? -1));
-        break;
-      case "visit":
-        arr.sort((a, b) => (b.visit_count ?? 0) - (a.visit_count ?? 0));
-        break;
-      case "favorite":
-        arr.sort((a, b) => (b.favorite_count ?? 0) - (a.favorite_count ?? 0));
-        break;
-      default:
-        break;
-    }
-    return arr;
-  }, [places, sort]);
-
-  return (
-    <>
-      <div className="flex justify-end mb-4 text-sm">
-        <label className="mr-2" htmlFor="sort-select">
-          並び替え:
-        </label>
-        <select
-          id="sort-select"
-          value={sort}
-          onChange={(e) => setSort(e.target.value as SortOption)}
-          className="border rounded px-2 py-1"
-        >
-          <option value="recent">更新順</option>
-          <option value="rating">評価順</option>
-          <option value="visit">訪問数順</option>
-          <option value="favorite">お気に入り順</option>
-        </select>
-      </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-      {sortedPlaces.map((place) => (
-        <div
-          key={place.place_id}
-          onClick={() => router.push(`/place/${place.place_id}`)}
-          className="cursor-pointer flex items-center gap-3 rounded-lg shadow hover:shadow-md hover:scale-[1.02] transition transform bg-white dark:bg-gray-800 p-3"
-        >
-          {place.icon_url ? (
-            <img
-              src={place.icon_url}
-              alt={place.name}
-              className="w-16 h-16 object-contain flex-shrink-0"
-            />
-          ) : (
-            <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-gray-400 flex-shrink-0">
-              画像なし
+    return (
+        <div className="space-y-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {places.map((place) => (
+                    <div
+                        key={place.place_id}
+                        onClick={() => router.push(`/place/${place.place_id}`)}
+                        className="group cursor-pointer bg-slate-800 rounded-xl overflow-hidden border border-slate-700 hover:border-yellow-500/50 hover:shadow-lg hover:shadow-yellow-500/10 transition-all"
+                    >
+                        <div className="relative h-48 bg-slate-700">
+                            {place.thumbnail_url ? (
+                                <img
+                                    src={place.thumbnail_url}
+                                    alt={place.name}
+                                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                                />
+                            ) : (
+                                <div className="w-full h-full flex items-center justify-center text-slate-500">画像なし</div>
+                            )}
+                            <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 to-transparent"></div>
+                            <div className="absolute bottom-3 left-3 right-3">
+                                <h3 className="text-lg font-bold text-white truncate group-hover:text-yellow-400 transition-colors">
+                                    {place.name}
+                                </h3>
+                                <p className="text-xs text-slate-400 truncate">by {place.creator_name}</p>
+                            </div>
+                        </div>
+                        <div className="p-4">
+                            <div className="flex items-center justify-between text-sm">
+                                <div className="flex items-center gap-1">
+                                    <span className="text-yellow-500">★</span>
+                                    <span>{place.average_rating ? place.average_rating.toFixed(1) : "-"}</span>
+                                </div>
+                                <div className="flex gap-3 text-xs text-slate-400">
+                                    <span>👁 {(place.visit_count / 1000000).toFixed(1)}M+</span>
+                                </div>
+                            </div>
+                            {place.genre && (
+                                <div className="mt-2">
+                                    <span className="text-xs bg-slate-700 text-slate-300 px-2 py-1 rounded">
+                                        {getGenreName(place.genre)}
+                                    </span>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                ))}
             </div>
-          )}
-          <div className="flex-1 min-w-0">
-            <h2 className="text-base font-semibold truncate">{place.name}</h2>
 
-            <div className="text-sm text-gray-500 dark:text-gray-400 flex flex-col sm:flex-row gap-1 sm:gap-4 sm:whitespace-nowrap">
-              <span>▶ 訪問数 {formatCount(place.visit_count)}</span>
-              <span>★ お気に入り {formatCount(place.favorite_count)}</span>
-            </div>
-            {place.average_rating !== null ? (
-              <div className="mt-2 flex items-center gap-1">
-                <RatingStars rating={place.average_rating} />
-                <span className="text-xs text-gray-600 dark:text-gray-400">({place.review_count}件)</span>
-              </div>
-            ) : (
-              <p className="text-sm mt-2 text-gray-500">評価なし</p>
+            {/* Load More Button */}
+            {hasMore && (
+                <div className="flex justify-center">
+                    <button
+                        onClick={loadMore}
+                        disabled={loadingMore}
+                        className="px-8 py-3 bg-yellow-500 hover:bg-yellow-400 text-black font-bold rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        {loadingMore ? (
+                            <span className="flex items-center gap-2">
+                                <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle>
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                読み込み中...
+                            </span>
+                        ) : (
+                            "もっと見る"
+                        )}
+                    </button>
+                </div>
             )}
-          </div>
         </div>
-      ))}
-    </div>
-    </>
-  );
+    );
 }

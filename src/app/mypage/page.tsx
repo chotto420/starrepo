@@ -1,80 +1,117 @@
-"use client";
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+import Link from "next/link";
+import MylistSection from "@/components/MylistSection";
+import ReviewsSection from "@/components/ReviewsSection";
+import ProfileHeader from "@/components/ProfileHeader";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase";
+export const dynamic = "force-dynamic";
 
-export default function MyPage() {
-  const [userEmail, setUserEmail] = useState<string | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
-  const router = useRouter();
+async function getUserReviews(userId: string) {
+    const supabase = await createClient();
 
-  useEffect(() => {
-    if (!navigator.cookieEnabled) {
-      setMessage("ブラウザの Cookie が無効になっているためログインできません。");
-      return;
+    const { data: reviews } = await supabase
+        .from("reviews")
+        .select(`
+      *,
+      places:place_id (
+        place_id,
+        name,
+        thumbnail_url
+      )
+    `)
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false });
+
+    return reviews || [];
+}
+
+async function getUserMylist(userId: string) {
+    const supabase = await createClient();
+
+    const { data: mylist } = await supabase
+        .from("user_mylist")
+        .select("place_id, created_at")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false });
+
+    if (!mylist || mylist.length === 0) return [];
+
+    // Fetch place details for mylist items
+    const placeIds = mylist.map(m => m.place_id);
+    const { data: places } = await supabase
+        .from("places")
+        .select("place_id, name, thumbnail_url, visit_count, favorite_count")
+        .in("place_id", placeIds);
+
+    // Merge mylist with place data
+    return mylist.map(m => ({
+        ...m,
+        place: places?.find(p => p.place_id === m.place_id)
+    }));
+}
+
+export default async function MyPage() {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+        redirect("/login");
     }
 
+    const reviews = await getUserReviews(user.id);
+    const mylist = await getUserMylist(user.id);
 
-    const timeout = setTimeout(() => {
-      setMessage("ログイン情報を取得できませんでした。ページを再読み込みしてください。");
-    }, 10000);
+    return (
+        <main className="min-h-screen bg-slate-900 text-white pb-20">
+            {/* Header */}
+            <Link href="/" className="max-w-7xl mx-auto px-6 pt-4 text-sm text-slate-400 hover:text-white inline-block">
+                ← ホームに戻る
+            </Link>
+            <ProfileHeader userEmail={user.email || ""} />
 
-    supabase.auth
-      .getUser()
-      .then(({ data }) => {
-        clearTimeout(timeout);
-        if (data.user) {
-          // `data.user.email` can be `undefined` in some cases,
-          // but the state expects `string | null`.
-          setUserEmail(data.user.email ?? null);
-        } else {
-          // Cookie appears enabled but no user was returned.
-          // Inform the user before navigating away so they can adjust settings.
-          if (navigator.cookieEnabled) {
-            setMessage(
-              "ログイン情報を取得できませんでした。Cookie の設定を確認してください。"
-            );
-          } else {
-            router.replace("/login");
-          }
-        }
-      })
-      .catch((error) => {
-        console.error("getUser failed", error);
-        clearTimeout(timeout);
-        setMessage("ユーザー情報の取得中にエラーが発生しました。");
-      });
+            {/* Content */}
+            <div className="max-w-7xl mx-auto px-6 py-8">
+                {/* Stats */}
+                <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-8">
+                    <div className="bg-slate-800 p-6 rounded-xl border border-slate-700">
+                        <div className="text-3xl font-bold text-yellow-400">{reviews.length}</div>
+                        <div className="text-sm text-slate-400 mt-1">投稿したレビュー</div>
+                    </div>
+                    <div className="bg-slate-800 p-6 rounded-xl border border-slate-700">
+                        <div className="text-3xl font-bold text-yellow-400">
+                            {reviews.length > 0
+                                ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1)
+                                : "-"}
+                        </div>
+                        <div className="text-sm text-slate-400 mt-1">平均評価</div>
+                    </div>
+                    <div className="bg-slate-800 p-6 rounded-xl border border-slate-700">
+                        <div className="text-3xl font-bold text-yellow-400">
+                            {new Set(reviews.map((r) => r.place_id)).size}
+                        </div>
+                        <div className="text-sm text-slate-400 mt-1">レビューしたゲーム</div>
+                    </div>
+                    <div className="bg-slate-800 p-6 rounded-xl border border-slate-700">
+                        <div className="text-3xl font-bold text-yellow-400">{mylist.length}</div>
+                        <div className="text-sm text-slate-400 mt-1">📚 マイリスト</div>
+                    </div>
+                </div>
 
-    return () => {
-      clearTimeout(timeout);
-    };
+                {/* Mylist */}
+                <div className="mb-12">
+                    <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+                        <span>📚</span> マイリスト
+                    </h2>
+                    <MylistSection initialMylist={mylist} />
+                </div>
 
-  }, [router]);
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    router.push("/login");
-  };
-
-  if (message) {
-    return <p className="p-4">{message}</p>;
-  }
-
-  if (!userEmail) {
-    return <p className="p-4">Loading...</p>;
-  }
-
-  return (
-    <main className="min-h-screen p-4">
-      <h1 className="text-2xl font-bold mb-4">マイページ</h1>
-      <p className="mb-6">ようこそ、{userEmail} さん</p>
-      <button
-        onClick={handleLogout}
-        className="bg-gray-800 text-white px-4 py-2 rounded-md hover:bg-gray-700"
-      >
-        ログアウト
-      </button>
-    </main>
-  );
+                {/* Reviews */}
+                <div>
+                    <h2 className="text-2xl font-bold mb-6">投稿したレビュー</h2>
+                    <ReviewsSection initialReviews={reviews} />
+                </div>
+            </div>
+        </main>
+    );
 }
