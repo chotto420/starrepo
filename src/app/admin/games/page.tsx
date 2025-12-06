@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Shield, ChevronLeft, Trash2, RefreshCw, ExternalLink, ArrowUpDown, Eye, Heart, Gamepad2 } from "lucide-react";
+import { Shield, ChevronLeft, Trash2, RefreshCw, ExternalLink, ArrowUpDown, Eye, Heart, Gamepad2, X, AlertTriangle } from "lucide-react";
 
 type Game = {
     place_id: number;
@@ -17,12 +17,18 @@ type Game = {
 
 type SortField = "visit_count" | "favorite_count" | "name";
 
+type DeleteConfirm = {
+    placeId: number;
+    name: string;
+} | null;
+
 export default function AdminGamesPage() {
     const [games, setGames] = useState<Game[]>([]);
     const [loading, setLoading] = useState(true);
     const [deletingId, setDeletingId] = useState<number | null>(null);
     const [sortBy, setSortBy] = useState<SortField>("visit_count");
     const [order, setOrder] = useState<"asc" | "desc">("asc");
+    const [deleteConfirm, setDeleteConfirm] = useState<DeleteConfirm>(null);
 
     useEffect(() => {
         fetchGames();
@@ -42,12 +48,19 @@ export default function AdminGamesPage() {
         setLoading(false);
     };
 
-    const handleDelete = async (placeId: number, name: string) => {
-        if (!confirm(`「${name}」を削除しますか？\n関連するレビューとマイリストアイテムも削除されます。`)) {
-            return;
-        }
+    // 削除確認モーダルを表示
+    const handleDeleteClick = (placeId: number, name: string) => {
+        setDeleteConfirm({ placeId, name });
+    };
 
+    // 削除実行
+    const confirmDelete = async () => {
+        if (!deleteConfirm) return;
+
+        const { placeId } = deleteConfirm;
+        setDeleteConfirm(null);
         setDeletingId(placeId);
+
         try {
             const res = await fetch(`/api/admin/games/${placeId}`, { method: "DELETE" });
             if (res.ok) {
@@ -114,8 +127,8 @@ export default function AdminGamesPage() {
                     <button
                         onClick={() => toggleSort("visit_count")}
                         className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm transition-colors ${sortBy === "visit_count"
-                                ? "bg-blue-500/20 text-blue-400"
-                                : "bg-slate-800 text-slate-400 hover:text-white"
+                            ? "bg-blue-500/20 text-blue-400"
+                            : "bg-slate-800 text-slate-400 hover:text-white"
                             }`}
                     >
                         <Eye className="w-4 h-4" />
@@ -127,8 +140,8 @@ export default function AdminGamesPage() {
                     <button
                         onClick={() => toggleSort("favorite_count")}
                         className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm transition-colors ${sortBy === "favorite_count"
-                                ? "bg-blue-500/20 text-blue-400"
-                                : "bg-slate-800 text-slate-400 hover:text-white"
+                            ? "bg-blue-500/20 text-blue-400"
+                            : "bg-slate-800 text-slate-400 hover:text-white"
                             }`}
                     >
                         <Heart className="w-4 h-4" />
@@ -140,8 +153,8 @@ export default function AdminGamesPage() {
                     <button
                         onClick={() => toggleSort("name")}
                         className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm transition-colors ${sortBy === "name"
-                                ? "bg-blue-500/20 text-blue-400"
-                                : "bg-slate-800 text-slate-400 hover:text-white"
+                            ? "bg-blue-500/20 text-blue-400"
+                            : "bg-slate-800 text-slate-400 hover:text-white"
                             }`}
                     >
                         名前
@@ -209,7 +222,7 @@ export default function AdminGamesPage() {
 
                                 {/* Delete Button */}
                                 <button
-                                    onClick={() => handleDelete(game.place_id, game.name)}
+                                    onClick={() => handleDeleteClick(game.place_id, game.name)}
                                     disabled={deletingId === game.place_id}
                                     className="flex items-center gap-1 px-3 py-1.5 text-sm bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 transition-colors disabled:opacity-50"
                                 >
@@ -225,6 +238,44 @@ export default function AdminGamesPage() {
                     </div>
                 )}
             </div>
+
+            {/* Delete Confirmation Modal */}
+            {deleteConfirm && (
+                <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+                    <div className="bg-slate-800 rounded-xl p-6 max-w-md w-full mx-4 border border-slate-700">
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="p-2 bg-red-500/20 rounded-lg">
+                                <AlertTriangle className="w-6 h-6 text-red-400" />
+                            </div>
+                            <h3 className="text-lg font-bold">削除確認</h3>
+                        </div>
+                        <p className="text-slate-300 mb-2">
+                            以下のゲームを削除しますか？
+                        </p>
+                        <p className="font-medium text-white mb-4 truncate">
+                            「{deleteConfirm.name}」
+                        </p>
+                        <p className="text-sm text-slate-400 mb-6">
+                            ⚠️ 関連するレビューとマイリストアイテムも削除されます。この操作は元に戻せません。
+                        </p>
+                        <div className="flex gap-3 justify-end">
+                            <button
+                                onClick={() => setDeleteConfirm(null)}
+                                className="px-4 py-2 text-sm bg-slate-700 text-slate-300 rounded-lg hover:bg-slate-600 transition-colors"
+                            >
+                                キャンセル
+                            </button>
+                            <button
+                                onClick={confirmDelete}
+                                className="px-4 py-2 text-sm bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors flex items-center gap-2"
+                            >
+                                <Trash2 className="w-4 h-4" />
+                                削除する
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </main>
     );
 }
