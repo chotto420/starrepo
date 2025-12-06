@@ -3,13 +3,14 @@
 import { useState, useEffect } from "react";
 import ProfileEditModal from "./ProfileEditModal";
 import LogoutButton from "./LogoutButton";
-import { Edit2 } from "lucide-react";
+import { Edit2, Shield } from "lucide-react";
 
 type ProfileHeaderProps = {
     userEmail: string;
+    isAdmin?: boolean;
 };
 
-export default function ProfileHeader({ userEmail }: ProfileHeaderProps) {
+export default function ProfileHeader({ userEmail, isAdmin }: ProfileHeaderProps) {
     const [profile, setProfile] = useState<{
         username: string | null;
         avatar_url: string | null;
@@ -69,6 +70,15 @@ export default function ProfileHeader({ userEmail }: ProfileHeaderProps) {
                             </div>
                         </div>
                         <div className="flex gap-3">
+                            {isAdmin && (
+                                <a
+                                    href="/admin"
+                                    className="flex items-center gap-2 px-4 py-2 bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400 font-medium rounded-lg transition-colors border border-yellow-500/50"
+                                >
+                                    <Shield className="w-4 h-4" />
+                                    管理者
+                                </a>
+                            )}
                             <button
                                 onClick={() => setShowEditModal(true)}
                                 className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium rounded-lg transition-colors border border-slate-700"

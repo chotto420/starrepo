@@ -97,19 +97,12 @@ export default async function MyPage() {
 
     return (
         <main className="min-h-screen bg-slate-900 text-white pb-20">
-            {/* DEBUG INFO */}
-            <div className="bg-red-900/50 p-4 text-xs font-mono text-white mb-4">
-                <p>User ID: {user.id}</p>
-                <p>Profile: {profile ? JSON.stringify(profile) : "MISSING"}</p>
-                <p>Reviews Count: {reviews.length}</p>
-                <p>First Review: {JSON.stringify(reviews[0])}</p>
-            </div>
 
             {/* Header */}
             <Link href="/" className="max-w-7xl mx-auto px-6 pt-4 text-sm text-slate-400 hover:text-white inline-block">
                 ← ホームに戻る
             </Link>
-            <ProfileHeader userEmail={user.email || ""} />
+            <ProfileHeader userEmail={user.email || ""} isAdmin={profile?.is_admin === true} />
 
             {/* Content */}
             <div className="max-w-7xl mx-auto px-6 py-8">
