@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Users, MessageSquare, Flag, Shield, ChevronLeft, RefreshCw, Check, AlertCircle } from "lucide-react";
+import { Users, MessageSquare, Flag, Shield, ChevronLeft, RefreshCw, Check, AlertCircle, Trash2, ExternalLink, Gamepad2 } from "lucide-react";
 
 type Stats = {
     totalUsers: number;
@@ -11,12 +11,17 @@ type Stats = {
     totalGames: number;
 };
 
+type FailedGame = {
+    placeId: number;
+    error: string;
+};
+
 type SyncResult = {
     success: boolean;
     total: number;
     updated: number;
     failed: number;
-    errors?: { placeId: number; error: string }[];
+    errors?: FailedGame[];
 };
 
 export default function AdminDashboard() {
@@ -24,6 +29,7 @@ export default function AdminDashboard() {
     const [syncing, setSyncing] = useState(false);
     const [syncResult, setSyncResult] = useState<SyncResult | null>(null);
     const [loading, setLoading] = useState(true);
+    const [deletingGameId, setDeletingGameId] = useState<number | null>(null);
 
     useEffect(() => {
         fetchStats();
@@ -63,6 +69,35 @@ export default function AdminDashboard() {
         }
 
         setSyncing(false);
+    };
+
+    const handleDeleteGame = async (placeId: number) => {
+        if (!confirm(`ゲーム (ID: ${placeId}) を削除しますか？\n関連するレビューとマイリストアイテムも削除されます。`)) {
+            return;
+        }
+
+        setDeletingGameId(placeId);
+        try {
+            const res = await fetch(`/api/admin/games/${placeId}`, { method: "DELETE" });
+            if (res.ok) {
+                // Remove from syncResult errors list
+                if (syncResult?.errors) {
+                    setSyncResult({
+                        ...syncResult,
+                        errors: syncResult.errors.filter(e => e.placeId !== placeId),
+                        failed: syncResult.failed - 1,
+                    });
+                }
+                fetchStats(); // Refresh stats
+            } else {
+                const data = await res.json();
+                alert(`削除に失敗しました: ${data.error}`);
+            }
+        } catch (error) {
+            console.error("Delete error:", error);
+            alert("削除中にエラーが発生しました");
+        }
+        setDeletingGameId(null);
     };
 
     if (loading) {
@@ -200,6 +235,48 @@ export default function AdminDashboard() {
                                     {syncResult.failed > 0 && (
                                         <span className="text-red-400 ml-2">（失敗: {syncResult.failed}件）</span>
                                     )}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Failed Games List */}
+                        {syncResult?.errors && syncResult.errors.length > 0 && (
+                            <div className="mt-4">
+                                <h3 className="text-sm font-semibold text-slate-400 mb-2 flex items-center gap-2">
+                                    <AlertCircle className="w-4 h-4 text-red-400" />
+                                    更新に失敗したゲーム ({syncResult.errors.length}件)
+                                </h3>
+                                <div className="bg-slate-900/50 rounded-lg border border-slate-700/50 divide-y divide-slate-700/50 max-h-64 overflow-y-auto">
+                                    {syncResult.errors.map((failedGame) => (
+                                        <div key={failedGame.placeId} className="p-3 flex items-center justify-between gap-2">
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center gap-2">
+                                                    <Gamepad2 className="w-4 h-4 text-slate-500 shrink-0" />
+                                                    <span className="text-sm font-mono text-slate-300">{failedGame.placeId}</span>
+                                                    <Link
+                                                        href={`/place/${failedGame.placeId}`}
+                                                        target="_blank"
+                                                        className="text-blue-400 hover:text-blue-300"
+                                                    >
+                                                        <ExternalLink className="w-3 h-3" />
+                                                    </Link>
+                                                </div>
+                                                <p className="text-xs text-slate-500 mt-1 truncate">{failedGame.error}</p>
+                                            </div>
+                                            <button
+                                                onClick={() => handleDeleteGame(failedGame.placeId)}
+                                                disabled={deletingGameId === failedGame.placeId}
+                                                className="flex items-center gap-1 px-2 py-1 text-xs bg-red-500/20 text-red-400 rounded hover:bg-red-500/30 transition-colors disabled:opacity-50"
+                                            >
+                                                {deletingGameId === failedGame.placeId ? (
+                                                    <RefreshCw className="w-3 h-3 animate-spin" />
+                                                ) : (
+                                                    <Trash2 className="w-3 h-3" />
+                                                )}
+                                                削除
+                                            </button>
+                                        </div>
+                                    ))}
                                 </div>
                             </div>
                         )}
