@@ -20,16 +20,17 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "無効な通報理由です" }, { status: 400 });
     }
 
-    // Check if user already reported this review
+    // Check if user already has a pending report for this review
     const { data: existing } = await supabase
         .from("review_reports")
         .select("id")
         .eq("review_id", reviewId)
         .eq("reporter_id", user.id)
+        .eq("status", "pending")
         .single();
 
     if (existing) {
-        return NextResponse.json({ error: "このレビューは既に通報済みです" }, { status: 400 });
+        return NextResponse.json({ error: "このレビューは既に通報済み（対応待ち）です" }, { status: 400 });
     }
 
     // Create report
