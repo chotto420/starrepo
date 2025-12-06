@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { getGenreName } from "@/lib/roblox";
 import Link from "next/link";
-import { Trophy, Users, Star, Gem, Heart, ChevronLeft, Eye, MessageCircle } from "lucide-react";
+import { Trophy, Users, Star, Gem, Heart, ChevronLeft, Eye, MessageCircle, List } from "lucide-react";
 
 const supabase = createClient();
 
@@ -19,10 +19,11 @@ type Place = {
     playing: number | null;
     average_rating?: number;
     review_count?: number;
+    mylist_count?: number;
     genre: string | null;
 };
 
-type RankingType = "overall" | "playing" | "rating" | "hidden" | "favorites";
+type RankingType = "overall" | "playing" | "favorites" | "rating" | "reviews" | "mylist" | "hidden";
 
 export default function RankingPage() {
     const [places, setPlaces] = useState<Place[]>([]);
@@ -33,7 +34,6 @@ export default function RankingPage() {
     const router = useRouter();
 
     useEffect(() => {
-        // Fetch available genres
         async function fetchGenres() {
             const { data } = await supabase
                 .from("places")
@@ -42,7 +42,7 @@ export default function RankingPage() {
                 .not("genre", "is", null);
 
             if (data) {
-                const uniqueGenres = [...new Set(data.map(p => p.genre).filter(Boolean))];
+                const uniqueGenres = [...new Set(data.map((p: { genre: string | null }) => p.genre).filter(Boolean))];
                 const genreList = uniqueGenres.map(g => ({
                     id: g as string,
                     name: getGenreName(g as string)
@@ -57,18 +57,15 @@ export default function RankingPage() {
         async function fetchRanking() {
             setLoading(true);
 
-            // Build query
             let query = supabase
                 .from("places")
                 .select("*")
                 .gte("favorite_count", 50);
 
-            // Apply genre filter
             if (selectedGenre !== "all") {
                 query = query.eq("genre", selectedGenre);
             }
 
-            // Apply sorting based on ranking type
             switch (rankingType) {
                 case "playing":
                     query = query.order("playing", { ascending: false });
@@ -87,14 +84,17 @@ export default function RankingPage() {
                 return;
             }
 
-            // Fetch reviews for all places
-            const placeIds = placeData.map((p) => p.place_id);
+            const placeIds = placeData.map((p: Place) => p.place_id);
             const { data: allReviews } = await supabase
                 .from("reviews")
                 .select("place_id, rating")
                 .in("place_id", placeIds);
 
-            // Calculate ratings
+            const { data: mylistData } = await supabase
+                .from("user_mylist")
+                .select("place_id")
+                .in("place_id", placeIds);
+
             const reviewsMap = new Map<number, { count: number; sum: number }>();
             if (allReviews) {
                 for (const r of allReviews) {
@@ -106,7 +106,14 @@ export default function RankingPage() {
                 }
             }
 
-            const withRatings = placeData.map((p) => {
+            const mylistMap = new Map<number, number>();
+            if (mylistData) {
+                for (const m of mylistData) {
+                    mylistMap.set(m.place_id, (mylistMap.get(m.place_id) || 0) + 1);
+                }
+            }
+
+            const withRatings = placeData.map((p: Place) => {
                 const stats = reviewsMap.get(p.place_id);
                 const count = stats?.count || 0;
                 const avg = count > 0 ? stats!.sum / count : 0;
@@ -115,6 +122,7 @@ export default function RankingPage() {
                     ...p,
                     average_rating: avg,
                     review_count: count,
+                    mylist_count: mylistMap.get(p.place_id) || 0,
                 };
             });
 
@@ -128,39 +136,43 @@ export default function RankingPage() {
     const sortedPlaces = [...places].sort((a, b) => {
         switch (rankingType) {
             case "overall":
-                // 総合: 評価 × 訪問数
                 const scoreA = (a.average_rating || 0) * Math.log10(a.visit_count || 1);
                 const scoreB = (b.average_rating || 0) * Math.log10(b.visit_count || 1);
                 return scoreB - scoreA;
             case "playing":
-                // 今プレイ中: playing順
                 return (b.playing || 0) - (a.playing || 0);
+            case "favorites":
+                return (b.favorite_count || 0) - (a.favorite_count || 0);
             case "rating":
-                // 高評価: 平均評価が高い順（レビュー数3件以上）
                 if ((a.review_count || 0) < 3) return 1;
                 if ((b.review_count || 0) < 3) return -1;
                 return (b.average_rating || 0) - (a.average_rating || 0);
+            case "reviews":
+                return (b.review_count || 0) - (a.review_count || 0);
+            case "mylist":
+                return (b.mylist_count || 0) - (a.mylist_count || 0);
             case "hidden":
-                // 隠れた名作: 高評価 & 低訪問数
                 const isHiddenA = (a.average_rating || 0) >= 4.5 && a.visit_count < 1000000;
                 const isHiddenB = (b.average_rating || 0) >= 4.5 && b.visit_count < 1000000;
                 if (isHiddenA && !isHiddenB) return -1;
                 if (!isHiddenA && isHiddenB) return 1;
                 return (b.average_rating || 0) - (a.average_rating || 0);
-            case "favorites":
-                // お気に入り: favorite_count順
-                return (b.favorite_count || 0) - (a.favorite_count || 0);
             default:
                 return 0;
         }
     });
 
-    const rankingTabs = [
+    const robloxTabs = [
         { id: "overall", label: "総合", icon: Trophy },
         { id: "playing", label: "今プレイ中", icon: Users },
-        { id: "rating", label: "高評価", icon: Star },
-        { id: "hidden", label: "隠れた名作", icon: Gem },
         { id: "favorites", label: "お気に入り", icon: Heart },
+    ];
+
+    const siteTabs = [
+        { id: "rating", label: "高評価", icon: Star },
+        { id: "reviews", label: "レビュー数", icon: MessageCircle },
+        { id: "mylist", label: "マイリスト", icon: List },
+        { id: "hidden", label: "隠れた名作", icon: Gem },
     ];
 
     return (
@@ -180,26 +192,49 @@ export default function RankingPage() {
                         </div>
                     </div>
 
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                        {/* Tabs */}
-                        <div className="flex gap-1 overflow-x-auto no-scrollbar pb-1 -mx-6 px-6 md:mx-0 md:px-0 md:pb-0">
-                            {rankingTabs.map((tab) => (
-                                <button
-                                    key={tab.id}
-                                    onClick={() => setRankingType(tab.id as RankingType)}
-                                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all border ${rankingType === tab.id
-                                        ? "bg-slate-800 text-white border-slate-600 shadow-lg shadow-black/20"
-                                        : "bg-transparent text-slate-400 border-transparent hover:bg-slate-800/50 hover:text-slate-200"
-                                        }`}
-                                >
-                                    <tab.icon className={`w-4 h-4 ${rankingType === tab.id ? "text-yellow-400" : ""}`} />
-                                    {tab.label}
-                                </button>
-                            ))}
+                    <div className="flex flex-col gap-4">
+                        {/* Roblox Data Tabs */}
+                        <div className="flex flex-col gap-2">
+                            <span className="text-xs text-slate-500 font-medium">Robloxデータ</span>
+                            <div className="flex gap-1 overflow-x-auto no-scrollbar -mx-6 px-6 md:mx-0 md:px-0">
+                                {robloxTabs.map((tab) => (
+                                    <button
+                                        key={tab.id}
+                                        onClick={() => setRankingType(tab.id as RankingType)}
+                                        className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all border ${rankingType === tab.id
+                                            ? "bg-slate-800 text-white border-slate-600 shadow-lg shadow-black/20"
+                                            : "bg-transparent text-slate-400 border-transparent hover:bg-slate-800/50 hover:text-slate-200"
+                                            }`}
+                                    >
+                                        <tab.icon className={`w-4 h-4 ${rankingType === tab.id ? "text-yellow-400" : ""}`} />
+                                        {tab.label}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Site Data Tabs */}
+                        <div className="flex flex-col gap-2">
+                            <span className="text-xs text-slate-500 font-medium">サイトデータ</span>
+                            <div className="flex gap-1 overflow-x-auto no-scrollbar -mx-6 px-6 md:mx-0 md:px-0">
+                                {siteTabs.map((tab) => (
+                                    <button
+                                        key={tab.id}
+                                        onClick={() => setRankingType(tab.id as RankingType)}
+                                        className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all border ${rankingType === tab.id
+                                            ? "bg-slate-800 text-white border-slate-600 shadow-lg shadow-black/20"
+                                            : "bg-transparent text-slate-400 border-transparent hover:bg-slate-800/50 hover:text-slate-200"
+                                            }`}
+                                    >
+                                        <tab.icon className={`w-4 h-4 ${rankingType === tab.id ? "text-yellow-400" : ""}`} />
+                                        {tab.label}
+                                    </button>
+                                ))}
+                            </div>
                         </div>
 
                         {/* Genre Filter */}
-                        <div className="shrink-0">
+                        <div className="mt-2">
                             <select
                                 value={selectedGenre}
                                 onChange={(e) => setSelectedGenre(e.target.value)}
