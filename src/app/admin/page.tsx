@@ -142,17 +142,20 @@ export default function AdminDashboard() {
                         </div>
                     </div>
 
-                    <div className="bg-slate-800/50 p-6 rounded-xl border border-slate-700/50">
+                    <Link
+                        href="/admin/games"
+                        className="bg-slate-800/50 p-6 rounded-xl border border-slate-700/50 hover:border-purple-500/50 transition-colors"
+                    >
                         <div className="flex items-center gap-4">
                             <div className="p-3 bg-purple-500/20 rounded-lg">
                                 <MessageSquare className="w-6 h-6 text-purple-400" />
                             </div>
                             <div>
                                 <div className="text-3xl font-bold">{stats?.totalGames || 0}</div>
-                                <div className="text-sm text-slate-400">登録ゲーム</div>
+                                <div className="text-sm text-slate-400">登録ゲーム →</div>
                             </div>
                         </div>
-                    </div>
+                    </Link>
 
                     <div className="bg-slate-800/50 p-6 rounded-xl border border-slate-700/50">
                         <div className="flex items-center gap-4">
