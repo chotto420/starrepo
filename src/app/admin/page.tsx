@@ -2,19 +2,21 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { isAdmin } from "@/lib/admin";
 import Link from "next/link";
-import { MessageSquare, Flag, Shield, ChevronLeft } from "lucide-react";
+import { Users, MessageSquare, Flag, Shield, ChevronLeft } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
 async function getStats() {
     const supabase = await createClient();
 
-    const [reviewsResult, reportsResult] = await Promise.all([
+    const [usersResult, reviewsResult, reportsResult] = await Promise.all([
+        supabase.from("profiles").select("*", { count: "exact", head: true }),
         supabase.from("reviews").select("*", { count: "exact", head: true }),
         supabase.from("review_reports").select("*", { count: "exact", head: true }).eq("status", "pending"),
     ]);
 
     return {
+        totalUsers: usersResult.count || 0,
         totalReviews: reviewsResult.count || 0,
         pendingReports: reportsResult.count || 0,
     };
@@ -50,7 +52,19 @@ export default async function AdminDashboard() {
 
             <div className="max-w-7xl mx-auto px-6 py-8">
                 {/* Stats Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div className="bg-slate-800/50 p-6 rounded-xl border border-slate-700/50">
+                        <div className="flex items-center gap-4">
+                            <div className="p-3 bg-blue-500/20 rounded-lg">
+                                <Users className="w-6 h-6 text-blue-400" />
+                            </div>
+                            <div>
+                                <div className="text-3xl font-bold">{stats.totalUsers}</div>
+                                <div className="text-sm text-slate-400">登録ユーザー</div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div className="bg-slate-800/50 p-6 rounded-xl border border-slate-700/50">
                         <div className="flex items-center gap-4">
                             <div className="p-3 bg-green-500/20 rounded-lg">
@@ -94,7 +108,7 @@ export default async function AdminDashboard() {
 
                 {/* Note */}
                 <p className="text-slate-500 text-sm mt-6">
-                    ※ユーザーの管理者権限の変更は、Supabaseダッシュボードから直接行ってください。
+                    ※ユーザーの管理者権限の変更やアカウント削除は、Supabaseダッシュボードから直接行ってください。
                 </p>
             </div>
         </main>
