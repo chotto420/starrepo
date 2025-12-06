@@ -2,21 +2,19 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { isAdmin } from "@/lib/admin";
 import Link from "next/link";
-import { Users, MessageSquare, Flag, Shield, ChevronLeft } from "lucide-react";
+import { MessageSquare, Flag, Shield, ChevronLeft } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
 async function getStats() {
     const supabase = await createClient();
 
-    const [usersResult, reviewsResult, reportsResult] = await Promise.all([
-        supabase.from("profiles").select("*", { count: "exact", head: true }),
+    const [reviewsResult, reportsResult] = await Promise.all([
         supabase.from("reviews").select("*", { count: "exact", head: true }),
         supabase.from("review_reports").select("*", { count: "exact", head: true }).eq("status", "pending"),
     ]);
 
     return {
-        totalUsers: usersResult.count || 0,
         totalReviews: reviewsResult.count || 0,
         pendingReports: reportsResult.count || 0,
     };
@@ -51,20 +49,8 @@ export default async function AdminDashboard() {
             </div>
 
             <div className="max-w-7xl mx-auto px-6 py-8">
-                {/* Stats Cards - Simplified */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                    <div className="bg-slate-800/50 p-6 rounded-xl border border-slate-700/50">
-                        <div className="flex items-center gap-4">
-                            <div className="p-3 bg-blue-500/20 rounded-lg">
-                                <Users className="w-6 h-6 text-blue-400" />
-                            </div>
-                            <div>
-                                <div className="text-3xl font-bold">{stats.totalUsers}</div>
-                                <div className="text-sm text-slate-400">登録ユーザー</div>
-                            </div>
-                        </div>
-                    </div>
-
+                {/* Stats Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                     <div className="bg-slate-800/50 p-6 rounded-xl border border-slate-700/50">
                         <div className="flex items-center gap-4">
                             <div className="p-3 bg-green-500/20 rounded-lg">
@@ -93,29 +79,23 @@ export default async function AdminDashboard() {
                     </Link>
                 </div>
 
-                {/* Navigation Cards - Only 2 */}
-                <h2 className="text-xl font-bold mb-4">管理メニュー</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <Link href="/admin/users" className="bg-slate-800/50 p-6 rounded-xl border border-slate-700/50 hover:border-blue-500/50 transition-colors group">
-                        <div className="flex items-center gap-4 mb-4">
-                            <div className="p-3 bg-blue-500/20 rounded-lg group-hover:bg-blue-500/30 transition-colors">
-                                <Users className="w-6 h-6 text-blue-400" />
-                            </div>
-                            <h3 className="text-lg font-semibold">ユーザー管理</h3>
-                        </div>
-                        <p className="text-sm text-slate-400">ユーザー一覧の表示、管理者権限の付与・削除</p>
-                    </Link>
-
-                    <Link href="/admin/reports" className="bg-slate-800/50 p-6 rounded-xl border border-slate-700/50 hover:border-red-500/50 transition-colors group">
-                        <div className="flex items-center gap-4 mb-4">
-                            <div className="p-3 bg-red-500/20 rounded-lg group-hover:bg-red-500/30 transition-colors">
-                                <Flag className="w-6 h-6 text-red-400" />
-                            </div>
-                            <h3 className="text-lg font-semibold">通報管理</h3>
-                        </div>
-                        <p className="text-sm text-slate-400">ユーザーからの通報を確認し、レビュー削除やユーザー対応を行う</p>
+                {/* Quick Actions */}
+                <div className="bg-slate-800/50 p-6 rounded-xl border border-slate-700/50">
+                    <h2 className="text-lg font-bold mb-4">通報管理</h2>
+                    <p className="text-slate-400 mb-4">ユーザーからの通報を確認し、問題のあるレビューを削除できます。</p>
+                    <Link
+                        href="/admin/reports"
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 transition-colors"
+                    >
+                        <Flag className="w-4 h-4" />
+                        通報一覧を見る
                     </Link>
                 </div>
+
+                {/* Note */}
+                <p className="text-slate-500 text-sm mt-6">
+                    ※ユーザーの管理者権限の変更は、Supabaseダッシュボードから直接行ってください。
+                </p>
             </div>
         </main>
     );
