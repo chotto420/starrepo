@@ -43,21 +43,22 @@ export default function AdminDashboard() {
     };
 
     const handleSync = async () => {
-        if (!confirm("全ゲームのデータをRoblox APIから更新しますか？\n（ゲーム数によっては時間がかかる場合があります）")) {
-            return;
-        }
-
+        console.log("Sync button clicked");
         setSyncing(true);
         setSyncResult(null);
 
         try {
+            console.log("Calling API...");
             const res = await fetch("/api/admin/sync-roblox", { method: "POST" });
+            console.log("API response status:", res.status);
             const data = await res.json();
+            console.log("API response data:", data);
             setSyncResult(data);
             if (data.success) {
                 fetchStats(); // Refresh stats after sync
             }
         } catch (error) {
+            console.error("Sync error:", error);
             setSyncResult({ success: false, total: 0, updated: 0, failed: 0 });
         }
 
