@@ -1,164 +1,175 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { getGenreName } from "@/lib/roblox";
-
-const supabase = createClient();
+import Link from "next/link";
+import { Star, User, Users, Activity, Eye, Heart } from "lucide-react";
 
 type Place = {
-    place_id: number;
+    place_id: string;
     name: string;
-    creator_name: string;
-    thumbnail_url: string | null;
+    description: string;
+    thumbnail_url: string;
     visit_count: number;
     favorite_count: number;
+    average_rating: number | null;
+    created_at: string;
+    updated_at: string;
     genre: string | null;
-    average_rating?: number;
+    creator_name: string;
 };
-
-const ITEMS_PER_PAGE = 24;
 
 export default function PlaceList() {
     const [places, setPlaces] = useState<Place[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [loadingMore, setLoadingMore] = useState(false);
+    const [page, setPage] = useState(1);
     const [hasMore, setHasMore] = useState(true);
-    const [page, setPage] = useState(0);
-    const router = useRouter();
+    const observer = useRef<IntersectionObserver | null>(null);
+    const [loading, setLoading] = useState(false); // To prevent double fetch
+
+    // Infinite Scroll Observer
+    const lastPlaceElementRef = useCallback(
+        (node: HTMLDivElement) => {
+            if (loading) return;
+            if (observer.current) observer.current.disconnect();
+            observer.current = new IntersectionObserver((entries) => {
+                if (entries[0].isIntersecting && hasMore) {
+                    setPage((prevPage) => prevPage + 1);
+                }
+            });
+            if (node) observer.current.observe(node);
+        },
+        [loading, hasMore]
+    );
 
     useEffect(() => {
-        fetchPlaces(0);
-    }, []);
-
-    async function fetchPlaces(pageNum: number) {
-        const isInitialLoad = pageNum === 0;
-        if (isInitialLoad) {
+        const fetchPlaces = async () => {
             setLoading(true);
-        } else {
-            setLoadingMore(true);
-        }
+            const supabase = createClient();
+            const start = (page - 1) * 12;
+            const end = start + 11;
 
-        const from = pageNum * ITEMS_PER_PAGE;
-        const to = from + ITEMS_PER_PAGE - 1;
+            const { data, error } = await supabase
+                .from("places")
+                .select("*")
+                .order("visit_count", { ascending: false }) // 人気順
+                .range(start, end);
 
-        const { data, error, count } = await supabase
-            .from("places")
-            .select("*", { count: "exact" })
-            .gte("favorite_count", 50)
-            .order("last_updated_at", { ascending: false })
-            .range(from, to);
-
-        if (data) {
-            if (isInitialLoad) {
-                setPlaces(data);
+            if (error) {
+                console.error("Error fetching places:", error);
             } else {
-                setPlaces(prev => [...prev, ...data]);
+                setPlaces((prevPlaces) => {
+                    // 重複排除 (念のため)
+                    const newPlaces = data.filter(
+                        (p) => !prevPlaces.some((existing) => existing.place_id === p.place_id)
+                    );
+                    return [...prevPlaces, ...newPlaces];
+                });
+                if (data.length < 12) {
+                    setHasMore(false);
+                }
             }
+            setLoading(false);
+        };
 
-            // Check if there are more items
-            if (count !== null) {
-                setHasMore((pageNum + 1) * ITEMS_PER_PAGE < count);
-            }
+        fetchPlaces();
+    }, [page]);
+
+    // Format numbers like 31M+, 500k, etc.
+    const formatNumber = (num: number) => {
+        if (num >= 1000000) {
+            return (num / 1000000).toFixed(1) + "M";
         }
-
-        setLoading(false);
-        setLoadingMore(false);
-    }
-
-    const loadMore = () => {
-        const nextPage = page + 1;
-        setPage(nextPage);
-        fetchPlaces(nextPage);
+        if (num >= 1000) {
+            return (num / 1000).toFixed(1) + "k";
+        }
+        return num.toString();
     };
 
-    if (loading) {
-        return (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {[...Array(8)].map((_, i) => (
-                    <div key={i} className="bg-slate-800 rounded-xl overflow-hidden border border-slate-700 animate-pulse">
-                        <div className="h-48 bg-slate-700"></div>
-                        <div className="p-4 space-y-2">
-                            <div className="h-4 bg-slate-700 rounded w-3/4"></div>
-                            <div className="h-3 bg-slate-700 rounded w-1/2"></div>
-                        </div>
-                    </div>
-                ))}
-            </div>
-        );
-    }
-
     return (
-        <div className="space-y-8">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {places.map((place) => (
-                    <div
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-12">
+            {places.map((place, index) => {
+                const isLast = places.length === index + 1;
+                return (
+                    <Link
+                        href={`/place/${place.place_id}`}
                         key={place.place_id}
-                        onClick={() => router.push(`/place/${place.place_id}`)}
-                        className="group cursor-pointer bg-slate-800 rounded-xl overflow-hidden border border-slate-700 hover:border-yellow-500/50 hover:shadow-lg hover:shadow-yellow-500/10 transition-all"
+                        ref={isLast ? lastPlaceElementRef : null}
+                        className="group relative bg-[#1c222c] rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 block"
                     >
-                        <div className="relative h-48 bg-slate-700">
+                        {/* Thumbnail Container */}
+                        <div className="relative aspect-video overflow-hidden">
                             {place.thumbnail_url ? (
                                 <img
                                     src={place.thumbnail_url}
                                     alt={place.name}
-                                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                    loading="lazy"
                                 />
                             ) : (
-                                <div className="w-full h-full flex items-center justify-center text-slate-500">画像なし</div>
+                                <div className="w-full h-full bg-slate-700 flex items-center justify-center text-4xl">
+                                    <Activity className="w-12 h-12 text-slate-500 opacity-50" />
+                                </div>
                             )}
-                            <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 to-transparent"></div>
-                            <div className="absolute bottom-3 left-3 right-3">
-                                <h3 className="text-lg font-bold text-white truncate group-hover:text-yellow-400 transition-colors">
-                                    {place.name}
-                                </h3>
-                                <p className="text-xs text-slate-400 truncate">by {place.creator_name}</p>
-                            </div>
-                        </div>
-                        <div className="p-4">
-                            <div className="flex items-center justify-between text-sm">
-                                <div className="flex items-center gap-1">
-                                    <span className="text-yellow-500">★</span>
-                                    <span>{place.average_rating ? place.average_rating.toFixed(1) : "-"}</span>
-                                </div>
-                                <div className="flex gap-3 text-xs text-slate-400">
-                                    <span>👁 {(place.visit_count / 1000000).toFixed(1)}M+</span>
-                                </div>
-                            </div>
+
+                            {/* Genre Badge */}
                             {place.genre && (
-                                <div className="mt-2">
-                                    <span className="text-xs bg-slate-700 text-slate-300 px-2 py-1 rounded">
-                                        {getGenreName(place.genre)}
+                                <div className="absolute top-2 left-2 px-3 py-1 bg-gradient-to-r from-blue-600 to-purple-600 text-white text-xs font-bold rounded-full shadow-lg">
+                                    {place.genre}
+                                </div>
+                            )}
+
+                            {/* Overlay Gradient on Hover */}
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                        </div>
+
+                        {/* Content */}
+                        <div className="p-4">
+                            <h3 className="text-white font-bold text-lg mb-1 truncate group-hover:text-yellow-400 transition-colors">
+                                {place.name}
+                            </h3>
+                            <p className="text-slate-400 text-xs mb-3 flex items-center gap-1 truncate">
+                                <User className="w-3 h-3" />
+                                {place.creator_name}
+                            </p>
+
+                            <div className="flex items-center justify-between pt-2 border-t border-slate-700/50">
+                                <div className="flex items-center gap-1 text-yellow-400 font-bold text-sm">
+                                    <Star className="w-3.5 h-3.5 fill-yellow-400" />
+                                    <span>{(place.average_rating || 0).toFixed(1)}</span>
+                                </div>
+                                <div className="flex items-center gap-3 text-xs font-medium text-slate-400">
+                                    <span className="flex items-center gap-1" title="総訪問数">
+                                        <Eye className="w-3.5 h-3.5" />
+                                        {formatNumber(place.visit_count)}
+                                    </span>
+                                    <span className="flex items-center gap-1" title="お気に入り数">
+                                        <Heart className="w-3.5 h-3.5" />
+                                        {formatNumber(place.favorite_count)}
                                     </span>
                                 </div>
-                            )}
+                            </div>
                         </div>
-                    </div>
-                ))}
-            </div>
+                    </Link>
+                );
+            })}
 
-            {/* Load More Button */}
+            {/* Loading Skeletons */}
             {hasMore && (
-                <div className="flex justify-center">
-                    <button
-                        onClick={loadMore}
-                        disabled={loadingMore}
-                        className="px-8 py-3 bg-yellow-500 hover:bg-yellow-400 text-black font-bold rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                        {loadingMore ? (
-                            <span className="flex items-center gap-2">
-                                <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle>
-                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                </svg>
-                                読み込み中...
-                            </span>
-                        ) : (
-                            "もっと見る"
-                        )}
-                    </button>
-                </div>
+                <>
+                    {[...Array(4)].map((_, i) => (
+                        <div key={`skeleton-${i}`} className="bg-[#1c222c] rounded-xl overflow-hidden shadow-lg animate-pulse">
+                            <div className="aspect-video bg-slate-700"></div>
+                            <div className="p-4 space-y-3">
+                                <div className="h-6 bg-slate-700 rounded w-3/4"></div>
+                                <div className="h-4 bg-slate-700 rounded w-1/2"></div>
+                                <div className="pt-2 border-t border-slate-700/50 flex justify-between">
+                                    <div className="h-5 w-10 bg-slate-700 rounded"></div>
+                                    <div className="h-5 w-20 bg-slate-700 rounded"></div>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </>
             )}
         </div>
     );

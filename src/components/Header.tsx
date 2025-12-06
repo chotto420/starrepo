@@ -4,6 +4,16 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import {
+    Home,
+    Trophy,
+    Gamepad2,
+    Search,
+    User,
+    Menu,
+    X,
+    Star
+} from "lucide-react";
 
 export default function Header() {
     const pathname = usePathname();
@@ -54,191 +64,154 @@ export default function Header() {
     }, []);
 
     const navLinks = [
-        { href: "/", label: "ホーム", icon: "🏠" },
-        { href: "/ranking", label: "ランキング", icon: "🏆" },
-        { href: "/genre", label: "ジャンル", icon: "🎮" },
-        { href: "/search", label: "検索", icon: "🔍" },
+        { href: "/", label: "ホーム", icon: Home },
+        { href: "/ranking", label: "ランキング", icon: Trophy },
+        { href: "/genre", label: "ジャンル", icon: Gamepad2 },
+        { href: "/search", label: "検索", icon: Search },
     ];
 
     return (
-        <header className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 border-b border-slate-700/50 backdrop-blur-sm sticky top-0 z-50 shadow-lg shadow-black/20">
+        <header className="bg-[#0B0E14]/80 border-b border-slate-800 backdrop-blur-md sticky top-0 z-50">
             <div className="max-w-7xl mx-auto px-4 sm:px-6">
                 <div className="flex items-center justify-between h-16">
                     {/* Logo */}
                     <Link href="/" className="flex items-center gap-2 group">
-                        <div className="relative">
-                            <span className="text-yellow-400 text-3xl group-hover:scale-110 transition-transform inline-block group-hover:rotate-12">
-                                ★
-                            </span>
-                            <span className="absolute inset-0 text-yellow-400 text-3xl blur-sm opacity-50 group-hover:opacity-75 transition-opacity">
-                                ★
-                            </span>
+                        <div className="relative flex items-center justify-center w-8 h-8 rounded-lg bg-yellow-500/10 text-yellow-500">
+                            <Star className="w-5 h-5 fill-yellow-500" />
                         </div>
-                        <span className="text-xl font-black bg-gradient-to-r from-yellow-300 via-yellow-400 to-orange-500 bg-clip-text text-transparent tracking-tight">
+                        <span className="text-xl font-bold text-white tracking-tight group-hover:text-yellow-400 transition-colors">
                             STAR REPO
                         </span>
                     </Link>
 
                     {/* Desktop Navigation */}
-                    <nav className="hidden md:flex items-center gap-2">
+                    <nav className="hidden md:flex items-center gap-1">
                         {navLinks.map((link) => {
                             const isActive = pathname === link.href;
+                            const Icon = link.icon;
                             return (
                                 <Link
                                     key={link.href}
                                     href={link.href}
                                     className={`
-                                        relative px-4 py-2 rounded-lg text-sm font-semibold
-                                        transition-all duration-200 group
+                                        flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200
                                         ${isActive
-                                            ? "bg-yellow-500/10 text-yellow-400 shadow-lg shadow-yellow-500/20"
-                                            : "text-slate-300 hover:text-white hover:bg-slate-700/50"
+                                            ? "text-yellow-400 bg-yellow-500/10"
+                                            : "text-slate-400 hover:text-white hover:bg-slate-800"
                                         }
                                     `}
                                 >
-                                    <span className="flex items-center gap-2">
-                                        <span className="text-lg group-hover:scale-110 transition-transform">
-                                            {link.icon}
-                                        </span>
-                                        <span>{link.label}</span>
-                                    </span>
-                                    {isActive && (
-                                        <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1/2 h-0.5 bg-gradient-to-r from-transparent via-yellow-400 to-transparent rounded-full"></span>
-                                    )}
+                                    <Icon className="w-4 h-4" />
+                                    <span>{link.label}</span>
                                 </Link>
                             );
                         })}
                     </nav>
 
                     {/* User Menu */}
-                    <div className="hidden md:flex items-center gap-3">
+                    <div className="hidden md:flex items-center gap-4">
                         {user ? (
                             <>
-                                <Link
-                                    href="/mypage"
-                                    className="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-700/50 rounded-lg transition-all"
-                                >
-                                    マイページ
-                                </Link>
-                                <div className="relative group">
+                                <Link href="/mypage" className="group">
                                     {profile?.avatar_url ? (
                                         <img
                                             src={profile.avatar_url}
                                             alt="Profile"
-                                            className="w-10 h-10 rounded-full object-cover shadow-lg shadow-yellow-500/30 cursor-pointer hover:scale-105 transition-transform border-2 border-yellow-400"
+                                            className="w-9 h-9 rounded-full object-cover ring-2 ring-slate-800 group-hover:ring-yellow-500/50 transition-all"
                                         />
                                     ) : (
-                                        <div className="w-10 h-10 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center text-black font-bold text-sm shadow-lg shadow-yellow-500/30 cursor-pointer hover:scale-105 transition-transform">
-                                            {user.email?.[0].toUpperCase()}
+                                        <div className="w-9 h-9 bg-slate-800 rounded-full flex items-center justify-center text-slate-300 group-hover:text-white group-hover:bg-slate-700 transition-all">
+                                            <User className="w-5 h-5" />
                                         </div>
                                     )}
-                                    <div className="absolute inset-0 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full blur-md opacity-50 group-hover:opacity-75 transition-opacity -z-10"></div>
-                                </div>
+                                </Link>
                             </>
                         ) : (
-                            <>
+                            <div className="flex items-center gap-3">
                                 <Link
                                     href="/login"
-                                    className="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-700/50 rounded-lg transition-all"
+                                    className="text-sm font-medium text-slate-400 hover:text-white transition-colors"
                                 >
                                     ログイン
                                 </Link>
                                 <Link
                                     href="/signup"
-                                    className="relative px-5 py-2.5 bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-400 hover:to-orange-400 text-black font-bold text-sm rounded-lg transition-all shadow-lg shadow-yellow-500/30 hover:shadow-yellow-500/50 hover:scale-105"
+                                    className="px-4 py-2 bg-yellow-500 hover:bg-yellow-400 text-black font-bold text-sm rounded-lg transition-colors"
                                 >
-                                    <span className="relative z-10">新規登録</span>
+                                    新規登録
                                 </Link>
-                            </>
+                            </div>
                         )}
                     </div>
 
                     {/* Mobile Menu Button */}
                     <button
                         onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                        className="md:hidden p-2 text-slate-300 hover:text-white hover:bg-slate-700/50 rounded-lg transition-all"
+                        className="md:hidden p-2 text-slate-400 hover:text-white transition-colors"
                         aria-label="メニュー"
                     >
-                        <svg
-                            className="w-6 h-6"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                        >
-                            {mobileMenuOpen ? (
-                                <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M6 18L18 6M6 6l12 12"
-                                />
-                            ) : (
-                                <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M4 6h16M4 12h16M4 18h16"
-                                />
-                            )}
-                        </svg>
+                        {mobileMenuOpen ? (
+                            <X className="w-6 h-6" />
+                        ) : (
+                            <Menu className="w-6 h-6" />
+                        )}
                     </button>
                 </div>
 
                 {/* Mobile Navigation */}
                 {mobileMenuOpen && (
-                    <nav className="md:hidden py-4 border-t border-slate-700/50 animate-fade-in">
-                        <div className="flex flex-col gap-2">
+                    <nav className="md:hidden py-4 border-t border-slate-800 animate-fade-in">
+                        <div className="flex flex-col gap-1">
                             {navLinks.map((link) => {
                                 const isActive = pathname === link.href;
+                                const Icon = link.icon;
                                 return (
                                     <Link
                                         key={link.href}
                                         href={link.href}
                                         onClick={() => setMobileMenuOpen(false)}
                                         className={`
-                                            flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-semibold
-                                            transition-all
+                                            flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all
                                             ${isActive
-                                                ? "bg-yellow-500/10 text-yellow-400 border-l-4 border-yellow-400"
-                                                : "text-slate-300 hover:text-white hover:bg-slate-700/50"
+                                                ? "text-yellow-400 bg-yellow-500/10"
+                                                : "text-slate-400 hover:text-white hover:bg-slate-800"
                                             }
                                         `}
                                     >
-                                        <span className="text-xl">{link.icon}</span>
+                                        <Icon className="w-5 h-5" />
                                         <span>{link.label}</span>
                                     </Link>
                                 );
                             })}
-                            <div className="border-t border-slate-700/50 my-2"></div>
-                            {user ? (
-                                <Link
-                                    href="/mypage"
-                                    onClick={() => setMobileMenuOpen(false)}
-                                    className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-semibold text-slate-300 hover:text-white hover:bg-slate-700/50 transition-all"
-                                >
-                                    <span className="text-xl">👤</span>
-                                    <span>マイページ</span>
-                                </Link>
-                            ) : (
-                                <>
+                            <div className="border-t border-slate-800 my-2 pt-2">
+                                {user ? (
                                     <Link
-                                        href="/login"
+                                        href="/mypage"
                                         onClick={() => setMobileMenuOpen(false)}
-                                        className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-semibold text-slate-300 hover:text-white hover:bg-slate-700/50 transition-all"
+                                        className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800"
                                     >
-                                        <span className="text-xl">🔑</span>
-                                        <span>ログイン</span>
+                                        <User className="w-5 h-5" />
+                                        <span>マイページ</span>
                                     </Link>
-                                    <Link
-                                        href="/signup"
-                                        onClick={() => setMobileMenuOpen(false)}
-                                        className="flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-yellow-500 to-orange-500 text-black font-bold text-sm rounded-lg shadow-lg shadow-yellow-500/30"
-                                    >
-                                        <span className="text-xl">✨</span>
-                                        <span>新規登録</span>
-                                    </Link>
-                                </>
-                            )}
+                                ) : (
+                                    <div className="px-4 flex flex-col gap-2">
+                                        <Link
+                                            href="/login"
+                                            onClick={() => setMobileMenuOpen(false)}
+                                            className="block w-full text-center py-2 text-sm font-medium text-slate-400 hover:text-white bg-slate-800 rounded-lg"
+                                        >
+                                            ログイン
+                                        </Link>
+                                        <Link
+                                            href="/signup"
+                                            onClick={() => setMobileMenuOpen(false)}
+                                            className="block w-full text-center py-2 bg-yellow-500 text-black font-bold text-sm rounded-lg"
+                                        >
+                                            新規登録
+                                        </Link>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </nav>
                 )}
