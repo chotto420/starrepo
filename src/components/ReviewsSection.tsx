@@ -278,22 +278,25 @@ export default function ReviewsSection({ initialReviews, currentUserId }: Review
                                     {review.comment}
                                 </p>
 
-                                {/* Action Buttons (Moved here for better layout like Twitter/X) */}
-                                {/* Logic to confirm ownership would be nice. I'll pass a check if possible or leave for now */}
+                                {/* Action Buttons */}
                                 <div className="flex justify-end gap-3 mt-3">
-                                    {/* Note: In real app, check user_id vs currentUserId */}
-                                    <button
-                                        onClick={() => setEditingReview(review)}
-                                        className="text-xs text-slate-500 hover:text-white transition-colors"
-                                    >
-                                        編集
-                                    </button>
-                                    <button
-                                        onClick={() => handleDelete(review.id)}
-                                        className="text-xs text-red-900/50 hover:text-red-400 transition-colors"
-                                    >
-                                        削除
-                                    </button>
+                                    {/* Edit/Delete - only for own reviews */}
+                                    {currentUserId && currentUserId === review.user_id && (
+                                        <>
+                                            <button
+                                                onClick={() => setEditingReview(review)}
+                                                className="text-xs text-slate-500 hover:text-white transition-colors"
+                                            >
+                                                編集
+                                            </button>
+                                            <button
+                                                onClick={() => handleDelete(review.id)}
+                                                className="text-xs text-red-900/50 hover:text-red-400 transition-colors"
+                                            >
+                                                削除
+                                            </button>
+                                        </>
+                                    )}
                                     {/* Report button - visible for others' reviews */}
                                     {currentUserId && currentUserId !== review.user_id && (
                                         <button
