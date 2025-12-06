@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react";
 import Link from "next/link";
 import EditReviewModal from "./EditReviewModal";
-import { ThumbsUp, Star, Filter, Heart } from "lucide-react";
+import { ThumbsUp, Star, Filter, Heart, Flag, X } from "lucide-react";
 
 type Review = {
     id: number;
@@ -38,6 +38,10 @@ export default function ReviewsSection({ initialReviews, currentUserId }: Review
     const [deletingId, setDeletingId] = useState<number | null>(null);
     const [sortOption, setSortOption] = useState<SortOption>("newest");
     const [likingId, setLikingId] = useState<number | null>(null);
+    const [reportingReview, setReportingReview] = useState<Review | null>(null);
+    const [reportReason, setReportReason] = useState<string>("");
+    const [reportDetail, setReportDetail] = useState<string>("");
+    const [submittingReport, setSubmittingReport] = useState(false);
 
     const sortedReviews = useMemo(() => {
         const sorted = [...reviews];
@@ -124,6 +128,35 @@ export default function ReviewsSection({ initialReviews, currentUserId }: Review
     const handleEditSuccess = () => {
         setEditingReview(null);
         window.location.reload();
+    };
+
+    const handleReport = async () => {
+        if (!reportingReview || !reportReason) return;
+        setSubmittingReport(true);
+
+        try {
+            const response = await fetch("/api/reviews/report", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    reviewId: reportingReview.id,
+                    reason: reportReason,
+                    detail: reportDetail
+                }),
+            });
+
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.error);
+
+            alert("通報を受け付けました。ご協力ありがとうございます。");
+            setReportingReview(null);
+            setReportReason("");
+            setReportDetail("");
+        } catch (error: unknown) {
+            alert(error instanceof Error ? error.message : "通報の送信に失敗しました");
+        } finally {
+            setSubmittingReport(false);
+        }
     };
 
     if (reviews.length === 0) {
@@ -261,6 +294,16 @@ export default function ReviewsSection({ initialReviews, currentUserId }: Review
                                     >
                                         削除
                                     </button>
+                                    {/* Report button - visible for others' reviews */}
+                                    {currentUserId && currentUserId !== review.user_id && (
+                                        <button
+                                            onClick={() => setReportingReview(review)}
+                                            className="text-xs text-slate-500 hover:text-orange-400 transition-colors flex items-center gap-1"
+                                        >
+                                            <Flag className="w-3 h-3" />
+                                            通報
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -276,6 +319,77 @@ export default function ReviewsSection({ initialReviews, currentUserId }: Review
                     onClose={() => setEditingReview(null)}
                     onSuccess={handleEditSuccess}
                 />
+            )}
+
+            {/* Report Modal */}
+            {reportingReview && (
+                <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+                    <div className="bg-[#1c222c] rounded-xl p-6 max-w-md w-full border border-slate-700">
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="text-lg font-bold text-white">レビューを通報</h3>
+                            <button
+                                onClick={() => {
+                                    setReportingReview(null);
+                                    setReportReason("");
+                                    setReportDetail("");
+                                }}
+                                className="text-slate-400 hover:text-white"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        <div className="mb-4">
+                            <label className="block text-sm font-medium text-slate-300 mb-2">
+                                通報理由 <span className="text-red-400">*</span>
+                            </label>
+                            <select
+                                value={reportReason}
+                                onChange={(e) => setReportReason(e.target.value)}
+                                className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+                            >
+                                <option value="">選択してください</option>
+                                <option value="harassment">ハラスメント・嫌がらせ</option>
+                                <option value="spam">スパム</option>
+                                <option value="inappropriate">不適切なコンテンツ</option>
+                                <option value="impersonation">なりすまし</option>
+                                <option value="other">その他</option>
+                            </select>
+                        </div>
+
+                        <div className="mb-6">
+                            <label className="block text-sm font-medium text-slate-300 mb-2">
+                                詳細（任意）
+                            </label>
+                            <textarea
+                                value={reportDetail}
+                                onChange={(e) => setReportDetail(e.target.value)}
+                                placeholder="問題の詳細を教えてください..."
+                                className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-orange-500 h-24 resize-none"
+                            />
+                        </div>
+
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => {
+                                    setReportingReview(null);
+                                    setReportReason("");
+                                    setReportDetail("");
+                                }}
+                                className="flex-1 px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-600 transition-colors"
+                            >
+                                キャンセル
+                            </button>
+                            <button
+                                onClick={handleReport}
+                                disabled={!reportReason || submittingReport}
+                                className="flex-1 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {submittingReport ? "送信中..." : "通報する"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
             )}
         </>
     );
