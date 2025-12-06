@@ -1,7 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { isAdmin } from "@/lib/admin";
-import { getRobloxGameData } from "@/lib/roblox";
+import { getRobloxGameData, RobloxGameData } from "@/lib/roblox";
+
+// Retry wrapper for Roblox API with exponential backoff
+async function fetchWithRetry(placeId: number, maxRetries: number = 2): Promise<RobloxGameData | null> {
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        const data = await getRobloxGameData(placeId);
+        if (data) {
+            return data;
+        }
+
+        // If first attempts fail, wait before retrying
+        if (attempt < maxRetries) {
+            const delay = 1000 * (attempt + 1); // 1s, 2s
+            console.log(`Retry ${attempt + 1} for placeId ${placeId} after ${delay}ms`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+        }
+    }
+    return null;
+}
 
 export async function POST(req: NextRequest) {
     const admin = await isAdmin();
@@ -28,13 +46,15 @@ export async function POST(req: NextRequest) {
     let failed = 0;
     const errors: { placeId: number; error: string }[] = [];
 
-    for (const place of places) {
+    for (let i = 0; i < places.length; i++) {
+        const place = places[i];
         try {
-            const gameData = await getRobloxGameData(place.place_id);
+            // Use retry wrapper
+            const gameData = await fetchWithRetry(place.place_id);
 
             if (!gameData) {
                 failed++;
-                errors.push({ placeId: place.place_id, error: "Roblox API returned null" });
+                errors.push({ placeId: place.place_id, error: "Roblox API returned null (after retries)" });
                 continue;
             }
 
@@ -65,8 +85,10 @@ export async function POST(req: NextRequest) {
                 updated++;
             }
 
-            // Rate limit: wait 100ms between requests to avoid Roblox API throttling
-            await new Promise(resolve => setTimeout(resolve, 100));
+            // Rate limit: wait 500ms between requests to avoid Roblox API throttling
+            // Increase to 1s every 10 requests to be extra safe
+            const delay = (i + 1) % 10 === 0 ? 1000 : 500;
+            await new Promise(resolve => setTimeout(resolve, delay));
         } catch (error) {
             failed++;
             errors.push({ placeId: place.place_id, error: String(error) });
@@ -78,6 +100,6 @@ export async function POST(req: NextRequest) {
         total: places.length,
         updated,
         failed,
-        errors: errors.slice(0, 10), // Only return first 10 errors
+        errors: errors.slice(0, 20), // Return up to 20 errors
     });
 }
