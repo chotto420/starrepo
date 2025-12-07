@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
@@ -18,7 +18,7 @@ type Place = {
     review_count?: number;
 };
 
-export default function SearchPage() {
+function SearchContent() {
     const [places, setPlaces] = useState<Place[]>([]);
     const [loading, setLoading] = useState(false);
     const [loadingMore, setLoadingMore] = useState(false);
@@ -288,5 +288,17 @@ export default function SearchPage() {
                 )}
             </div>
         </main>
+    );
+}
+
+export default function SearchPage() {
+    return (
+        <Suspense fallback={
+            <main className="min-h-screen bg-slate-900 text-white pb-20">
+                <div className="text-center py-20 text-slate-500">読み込み中...</div>
+            </main>
+        }>
+            <SearchContent />
+        </Suspense>
     );
 }
