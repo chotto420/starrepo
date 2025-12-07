@@ -112,18 +112,21 @@ export default function Header() {
                     <div className="hidden md:flex items-center gap-4">
                         {user ? (
                             <>
-                                <Link href="/mypage" className="group">
+                                <Link href="/mypage" className="group flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-slate-800 transition-all">
                                     {profile?.avatar_url ? (
                                         <img
                                             src={profile.avatar_url}
                                             alt="Profile"
-                                            className="w-9 h-9 rounded-full object-cover ring-2 ring-slate-800 group-hover:ring-yellow-500/50 transition-all"
+                                            className="w-8 h-8 rounded-full object-cover ring-2 ring-slate-700 group-hover:ring-yellow-500/50 transition-all"
                                         />
                                     ) : (
-                                        <div className="w-9 h-9 bg-slate-800 rounded-full flex items-center justify-center text-slate-300 group-hover:text-white group-hover:bg-slate-700 transition-all">
-                                            <User className="w-5 h-5" />
+                                        <div className="w-8 h-8 bg-slate-700 rounded-full flex items-center justify-center text-slate-300 group-hover:text-white transition-all">
+                                            <User className="w-4 h-4" />
                                         </div>
                                     )}
+                                    <span className="text-sm font-medium text-slate-300 group-hover:text-white transition-colors">
+                                        マイページ
+                                    </span>
                                 </Link>
                             </>
                         ) : (
