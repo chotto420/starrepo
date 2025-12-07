@@ -150,6 +150,13 @@ export default function PrivacyPage() {
                         </p>
                     </section>
 
+                    <section className="mb-8">
+                        <h2 className="text-xl font-bold text-white mb-4">10. お問い合わせ</h2>
+                        <p className="text-slate-300 leading-relaxed">
+                            本ポリシーに関するお問い合わせは、<a href="/contact" className="text-yellow-400 hover:underline">お問い合わせページ</a>よりご連絡ください。
+                        </p>
+                    </section>
+
                 </div>
             </div>
         </main>

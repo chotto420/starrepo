@@ -2,13 +2,14 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Users, MessageSquare, Flag, Shield, ChevronLeft, RefreshCw, Check, AlertCircle, Trash2, ExternalLink, Gamepad2 } from "lucide-react";
+import { Users, MessageSquare, Flag, Shield, ChevronLeft, RefreshCw, Check, AlertCircle, Trash2, ExternalLink, Gamepad2, Mail } from "lucide-react";
 
 type Stats = {
     totalUsers: number;
     totalReviews: number;
     pendingReports: number;
     totalGames: number;
+    pendingContacts: number;
 };
 
 type FailedGame = {
@@ -180,6 +181,21 @@ export default function AdminDashboard() {
                             <div>
                                 <div className="text-3xl font-bold">{stats?.pendingReports || 0}</div>
                                 <div className="text-sm text-slate-400">未対応の通報 →</div>
+                            </div>
+                        </div>
+                    </Link>
+
+                    <Link
+                        href="/admin/contacts"
+                        className="bg-slate-800/50 p-6 rounded-xl border border-slate-700/50 hover:border-blue-500/50 transition-colors"
+                    >
+                        <div className="flex items-center gap-4">
+                            <div className="p-3 bg-blue-500/20 rounded-lg">
+                                <Mail className="w-6 h-6 text-blue-400" />
+                            </div>
+                            <div>
+                                <div className="text-3xl font-bold">{stats?.pendingContacts || 0}</div>
+                                <div className="text-sm text-slate-400">未読のお問い合わせ →</div>
                             </div>
                         </div>
                     </Link>

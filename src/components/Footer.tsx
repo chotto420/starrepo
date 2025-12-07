@@ -37,6 +37,12 @@ export default function Footer() {
                         >
                             免責事項
                         </Link>
+                        <Link
+                            href="/contact"
+                            className="text-slate-400 hover:text-white transition-colors"
+                        >
+                            お問い合わせ
+                        </Link>
                     </nav>
                 </div>
 
