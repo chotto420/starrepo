@@ -30,7 +30,7 @@ export default function PrivacyPage() {
             <div className="max-w-4xl mx-auto px-6 py-8">
                 <div className="prose prose-invert prose-slate max-w-none">
                     <p className="text-slate-400 text-sm mb-8">
-                        最終更新日: 2024年12月7日
+                        最終更新日: 2025年12月7日
                     </p>
 
                     <section className="mb-8">
@@ -150,12 +150,6 @@ export default function PrivacyPage() {
                         </p>
                     </section>
 
-                    <section className="mb-8">
-                        <h2 className="text-xl font-bold text-white mb-4">10. お問い合わせ</h2>
-                        <p className="text-slate-300 leading-relaxed">
-                            本ポリシーに関するお問い合わせは、本サービス内のお問い合わせフォームよりご連絡ください。
-                        </p>
-                    </section>
                 </div>
             </div>
         </main>
