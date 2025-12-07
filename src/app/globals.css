@@ -1,10 +1,6 @@
-@import "tailwindcss";
-
-@theme {
-    --font-sans: 'Inter', sans-serif;
-    --color-background: #0f172a;
-    --color-foreground: #f8fafc;
-}
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 :root {
     --background: #0B0E14;

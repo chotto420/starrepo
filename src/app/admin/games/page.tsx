@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Shield, ChevronLeft, Trash2, RefreshCw, ExternalLink, ArrowUpDown, Eye, Heart, Gamepad2, X, AlertTriangle } from "lucide-react";
+import { Shield, ChevronLeft, Trash2, RefreshCw, ExternalLink, ArrowUpDown, Eye, Heart, Gamepad2, AlertTriangle } from "lucide-react";
 
 type Game = {
     place_id: number;
