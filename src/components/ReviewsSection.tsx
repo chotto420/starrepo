@@ -287,19 +287,19 @@ export default function ReviewsSection({ initialReviews, currentUserId, onUpdate
                                 </p>
 
                                 {/* Action Buttons */}
-                                <div className="flex justify-end gap-3 mt-3">
+                                <div className="flex justify-end gap-4 sm:gap-3 mt-3">
                                     {/* Edit/Delete - only for own reviews */}
                                     {currentUserId && currentUserId === review.user_id && (
                                         <>
                                             <button
                                                 onClick={() => setEditingReview(review)}
-                                                className="text-xs text-slate-500 hover:text-white transition-colors"
+                                                className="text-sm sm:text-xs px-3 py-2 sm:px-2 sm:py-1 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition-colors min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 flex items-center justify-center"
                                             >
                                                 編集
                                             </button>
                                             <button
                                                 onClick={() => handleDeleteClick(review.id)}
-                                                className="text-xs text-red-900/50 hover:text-red-400 transition-colors"
+                                                className="text-sm sm:text-xs px-3 py-2 sm:px-2 sm:py-1 text-red-400/70 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 flex items-center justify-center"
                                             >
                                                 削除
                                             </button>
@@ -309,9 +309,9 @@ export default function ReviewsSection({ initialReviews, currentUserId, onUpdate
                                     {currentUserId && currentUserId !== review.user_id && (
                                         <button
                                             onClick={() => setReportingReview(review)}
-                                            className="text-xs text-slate-500 hover:text-orange-400 transition-colors flex items-center gap-1"
+                                            className="text-sm sm:text-xs px-3 py-2 sm:px-2 sm:py-1 text-slate-400 hover:text-orange-400 hover:bg-orange-500/10 rounded-lg transition-colors flex items-center gap-1 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 justify-center"
                                         >
-                                            <Flag className="w-3 h-3" />
+                                            <Flag className="w-4 h-4 sm:w-3 sm:h-3" />
                                             通報
                                         </button>
                                     )}

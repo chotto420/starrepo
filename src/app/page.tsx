@@ -63,7 +63,7 @@ export default function Home() {
     return (
         <main className="min-h-screen pb-20 overflow-x-hidden bg-[#0B0E14]">
             {/* Hero Section */}
-            <section className="relative min-h-[70vh] flex flex-col items-center justify-center overflow-hidden pt-20">
+            <section className="relative min-h-[50vh] sm:min-h-[70vh] flex flex-col items-center justify-center overflow-hidden pt-12 sm:pt-20">
                 {/* Background Decor */}
                 <div className="absolute inset-0 z-0">
                     <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-purple-600/20 rounded-full blur-[120px] opacity-30 mix-blend-screen animate-pulse"></div>
@@ -71,46 +71,44 @@ export default function Home() {
                 </div>
 
                 <div className="relative z-10 w-full max-w-4xl mx-auto px-6 text-center">
-                    <div className="animate-fade-in-up space-y-8">
+                    <div className="animate-fade-in-up space-y-4 sm:space-y-8">
                         {/* Tagline */}
-                        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 backdrop-blur-sm">
-                            <Sparkles className="w-4 h-4 text-yellow-400" />
-                            <span className="text-sm font-medium text-slate-300">
-                                次世代の Roblox レビュープラットフォーム
+                        <div className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full bg-white/5 border border-white/10 backdrop-blur-sm">
+                            <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-400" />
+                            <span className="text-xs sm:text-sm font-medium text-slate-300">
+                                Roblox ゲームレビューサイト
                             </span>
                         </div>
 
                         {/* Main Title */}
-                        <h1 className="text-5xl sm:text-7xl font-bold tracking-tight text-white drop-shadow-2xl leading-tight">
-                            Discover <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-500">Hidden Gems</span>
-                            <br />
-                            in Roblox
+                        <h1 className="text-3xl sm:text-5xl md:text-6xl font-bold text-white leading-tight">
+                            面白いゲームを<br />
+                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-500">みんなで見つけよう</span>
                         </h1>
 
-                        <p className="text-lg text-slate-400 max-w-2xl mx-auto leading-relaxed">
-                            埋もれた名作を発掘し、コミュニティと共に育てよう。<br className="hidden sm:block" />
-                            Place IDを入力して新しいゲームを登録するか、キーワードで検索できます。
+                        <p className="text-sm sm:text-base text-slate-400 max-w-xl mx-auto leading-relaxed px-4 sm:px-0">
+                            Place IDでゲームを登録、またはキーワードで検索できます。
                         </p>
 
                         {/* Unified Search Bar */}
-                        <div className="max-w-xl mx-auto mt-10">
+                        <div className="max-w-xl mx-auto mt-6 sm:mt-10 px-4 sm:px-0">
                             <form onSubmit={handleSearch} className="relative group">
-                                <div className="absolute -inset-0.5 bg-gradient-to-r from-yellow-500 to-orange-600 rounded-2xl opacity-30 group-hover:opacity-100 transition duration-500 blur"></div>
-                                <div className="relative flex items-center bg-[#151921] rounded-2xl border border-white/10 shadow-2xl overflow-hidden">
-                                    <div className="pl-6 text-slate-500">
-                                        <Search className="w-5 h-5" />
+                                <div className="absolute -inset-0.5 bg-gradient-to-r from-yellow-500 to-orange-600 rounded-xl sm:rounded-2xl opacity-30 group-hover:opacity-100 transition duration-500 blur"></div>
+                                <div className="relative flex items-center bg-[#151921] rounded-xl sm:rounded-2xl border border-white/10 shadow-2xl overflow-hidden">
+                                    <div className="pl-4 sm:pl-6 text-slate-500">
+                                        <Search className="w-4 h-4 sm:w-5 sm:h-5" />
                                     </div>
                                     <input
                                         type="text"
                                         value={placeId}
                                         onChange={(e) => setPlaceId(e.target.value)}
                                         placeholder="キーワード または Place ID を入力..."
-                                        className="w-full bg-transparent text-white placeholder-slate-500 px-4 py-5 outline-none text-lg"
+                                        className="w-full bg-transparent text-white placeholder-slate-500 px-3 py-4 sm:px-4 sm:py-5 outline-none text-sm sm:text-lg"
                                     />
                                     <button
                                         type="submit"
                                         disabled={loading || !placeId}
-                                        className="mr-2 px-6 py-3 bg-white text-black font-bold rounded-xl hover:bg-slate-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                                        className="mr-2 px-4 py-2.5 sm:px-6 sm:py-3 bg-white text-black font-bold rounded-lg sm:rounded-xl hover:bg-slate-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 text-sm sm:text-base"
                                     >
                                         {loading ? (
                                             <div className="animate-spin h-5 w-5 border-2 border-black border-t-transparent rounded-full"></div>

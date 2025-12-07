@@ -18,26 +18,19 @@ async function getUserReviews(userId: string) {
 
     if (!reviews || reviews.length === 0) return [];
 
-    // 2. Fetch Profile
-    const { data: profile } = await supabase
-        .from("profiles")
-        .select("username, avatar_url")
-        .eq("user_id", userId)
-        .single();
-
-    // 3. Fetch Places
+    // Fetch profile, places, and likes in parallel
     const placeIds = [...new Set(reviews.map(r => r.place_id))];
-    const { data: places } = await supabase
-        .from("places")
-        .select("place_id, name, thumbnail_url")
-        .in("place_id", placeIds);
-
-    // 4. Fetch Like Counts
     const reviewIds = reviews.map(r => r.id);
-    const { data: likes } = await supabase
-        .from("review_likes")
-        .select("review_id")
-        .in("review_id", reviewIds);
+
+    const [profileResult, placesResult, likesResult] = await Promise.all([
+        supabase.from("profiles").select("username, avatar_url").eq("user_id", userId).single(),
+        supabase.from("places").select("place_id, name, thumbnail_url").in("place_id", placeIds),
+        supabase.from("review_likes").select("review_id").in("review_id", reviewIds)
+    ]);
+
+    const profile = profileResult.data;
+    const places = placesResult.data;
+    const likes = likesResult.data;
 
     // Count likes in memory
     const likeCounts = (likes || []).reduce((acc, like) => {
@@ -92,8 +85,11 @@ export default async function MyPage() {
     // Check profile
     const { data: profile } = await supabase.from("profiles").select("*").eq("user_id", user.id).single();
 
-    const reviews = await getUserReviews(user.id);
-    const mylist = await getUserMylist(user.id);
+    // Fetch reviews and mylist in parallel for better performance
+    const [reviews, mylist] = await Promise.all([
+        getUserReviews(user.id),
+        getUserMylist(user.id)
+    ]);
 
     return (
         <main className="min-h-screen bg-slate-900 text-white pb-20">

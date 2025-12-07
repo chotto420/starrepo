@@ -47,6 +47,11 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Rating must be between 1 and 5" }, { status: 400 });
     }
 
+    // コメントの長さ制限
+    if (comment && comment.length > 2000) {
+        return NextResponse.json({ error: "コメントは2000文字以内にしてください" }, { status: 400 });
+    }
+
     // 既存のレビューをチェック
     const { data: existingReview } = await supabase
         .from("reviews")

@@ -1,8 +1,14 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { getRobloxGameData } from "@/lib/roblox";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+    // Vercel Cron認証チェック
+    const authHeader = request.headers.get("authorization");
+    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     try {
         // Select 10 places that haven't been synced recently (oldest last_synced_at)
         const { data: places, error } = await supabase

@@ -110,7 +110,7 @@ export default function PlaceList() {
     };
 
     return (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-12">
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6 pb-12">
             {places.map((place, index) => {
                 const isLast = places.length === index + 1;
                 return (
@@ -147,28 +147,31 @@ export default function PlaceList() {
                         </div>
 
                         {/* Content */}
-                        <div className="p-4">
-                            <h3 className="text-white font-bold text-lg mb-1 truncate group-hover:text-yellow-400 transition-colors">
+                        <div className="p-2 sm:p-4">
+                            <h3 className="text-white font-bold text-sm sm:text-lg mb-0.5 sm:mb-1 truncate group-hover:text-yellow-400 transition-colors">
                                 {place.name}
                             </h3>
-                            <p className="text-slate-400 text-xs mb-3 flex items-center gap-1 truncate">
+                            <p className="text-slate-400 text-xs mb-2 sm:mb-3 flex items-center gap-1 truncate">
                                 <User className="w-3 h-3" />
-                                {place.creator_name}
+                                <span className="hidden sm:inline">{place.creator_name}</span>
+                                <span className="sm:hidden">{place.creator_name?.slice(0, 12)}{place.creator_name?.length > 12 ? '...' : ''}</span>
                             </p>
 
-                            <div className="flex items-center justify-between pt-2 border-t border-slate-700/50">
-                                <div className="flex items-center gap-1 text-yellow-400 font-bold text-sm">
-                                    <Star className="w-3.5 h-3.5 fill-yellow-400" />
+                            <div className="flex items-center justify-between pt-1.5 sm:pt-2 border-t border-slate-700/50">
+                                <div className="flex items-center gap-0.5 sm:gap-1 text-yellow-400 font-bold text-xs sm:text-sm">
+                                    <Star className="w-3 h-3 sm:w-3.5 sm:h-3.5 fill-yellow-400" />
                                     <span>{(place.average_rating || 0).toFixed(1)}</span>
                                 </div>
-                                <div className="flex items-center gap-3 text-xs font-medium text-slate-400">
-                                    <span className="flex items-center gap-1" title="総訪問数">
-                                        <Eye className="w-3.5 h-3.5" />
-                                        {formatNumber(place.visit_count)}
+                                <div className="flex items-center gap-2 sm:gap-3 text-xs font-medium text-slate-400">
+                                    <span className="flex items-center gap-0.5 sm:gap-1" title="総訪問数">
+                                        <Eye className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                                        <span className="hidden sm:inline">{formatNumber(place.visit_count)}</span>
+                                        <span className="sm:hidden text-[10px]">{formatNumber(place.visit_count)}</span>
                                     </span>
-                                    <span className="flex items-center gap-1" title="お気に入り数">
-                                        <Heart className="w-3.5 h-3.5" />
-                                        {formatNumber(place.favorite_count)}
+                                    <span className="flex items-center gap-0.5 sm:gap-1" title="お気に入り数">
+                                        <Heart className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                                        <span className="hidden sm:inline">{formatNumber(place.favorite_count)}</span>
+                                        <span className="sm:hidden text-[10px]">{formatNumber(place.favorite_count)}</span>
                                     </span>
                                 </div>
                             </div>

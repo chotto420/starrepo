@@ -77,7 +77,7 @@ export default function MylistSection({ initialMylist, onUpdate }: MylistSection
 
     return (
         <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
                 {mylist.map((item) => (
                     <div
                         key={item.place_id}
@@ -90,7 +90,7 @@ export default function MylistSection({ initialMylist, onUpdate }: MylistSection
                                 handleDeleteClick(item.place_id);
                             }}
                             disabled={deletingId === item.place_id}
-                            className="absolute top-2 right-2 z-10 w-8 h-8 bg-red-500/90 hover:bg-red-600 text-white rounded-full flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 z-10 w-6 h-6 sm:w-8 sm:h-8 bg-red-500/90 hover:bg-red-600 text-white rounded-full flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             title="マイリストから削除"
                         >
                             {deletingId === item.place_id ? (
@@ -101,7 +101,7 @@ export default function MylistSection({ initialMylist, onUpdate }: MylistSection
                         </button>
 
                         <Link href={`/place/${item.place_id}`} className="block">
-                            <div className="relative h-40 bg-slate-700">
+                            <div className="relative h-28 sm:h-40 bg-slate-700">
                                 {item.place?.thumbnail_url ? (
                                     <img
                                         src={item.place.thumbnail_url}
@@ -114,13 +114,13 @@ export default function MylistSection({ initialMylist, onUpdate }: MylistSection
                                     </div>
                                 )}
                                 <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 to-transparent"></div>
-                                <div className="absolute bottom-3 left-3 right-3">
-                                    <h3 className="text-sm font-bold text-white truncate group-hover:text-yellow-400 transition-colors">
+                                <div className="absolute bottom-2 left-2 right-2 sm:bottom-3 sm:left-3 sm:right-3">
+                                    <h3 className="text-xs sm:text-sm font-bold text-white truncate group-hover:text-yellow-400 transition-colors">
                                         {item.place?.name || `Place #${item.place_id}`}
                                     </h3>
                                 </div>
                             </div>
-                            <div className="p-3 flex items-center justify-between text-xs text-slate-400">
+                            <div className="p-2 sm:p-3 flex items-center justify-between text-[10px] sm:text-xs text-slate-400">
                                 <span>
                                     👁 {((item.place?.visit_count || 0) / 1000000).toFixed(1)}M+
                                 </span>

@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { getRobloxGameData } from "@/lib/roblox";
 import ReviewForm from "@/components/ReviewForm";
@@ -10,6 +11,57 @@ import { ChevronLeft, Play, PenLine, Eye, Heart, Users, Gamepad2 } from "lucide-
 
 // Force dynamic rendering to ensure fresh auth state
 export const dynamic = "force-dynamic";
+
+const BASE_URL = "https://starrepo.net";
+
+// Generate dynamic metadata for SEO
+export async function generateMetadata(
+  { params }: { params: Promise<{ id: string }> }
+): Promise<Metadata> {
+  const { id } = await params;
+  const placeId = Number(id);
+
+  if (isNaN(placeId)) {
+    return { title: "ゲームが見つかりません" };
+  }
+
+  const supabase = await createClient();
+  const { data: place } = await supabase
+    .from("places")
+    .select("name, description, thumbnail_url, creator_name")
+    .eq("place_id", placeId)
+    .single();
+
+  if (!place) {
+    return { title: "ゲームが見つかりません" };
+  }
+
+  const title = `${place.name} - Roblox ゲームレビュー`;
+  const description = place.description
+    ? place.description.slice(0, 155) + "..."
+    : `${place.name}のレビューと評価をチェック。${place.creator_name}が制作したRobloxゲーム。`;
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      url: `${BASE_URL}/place/${placeId}`,
+      images: place.thumbnail_url ? [{ url: place.thumbnail_url }] : [],
+      type: "article",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: place.thumbnail_url ? [place.thumbnail_url] : [],
+    },
+    alternates: {
+      canonical: `${BASE_URL}/place/${placeId}`,
+    },
+  };
+}
 
 async function getPlace(id: number) {
   const supabase = await createClient();

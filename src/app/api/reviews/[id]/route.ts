@@ -17,7 +17,6 @@ export async function PUT(
 
         const { id } = await params;
         const reviewId = parseInt(id);
-        console.log("[Review Update] reviewId:", reviewId, "userId:", user.id);
 
         if (isNaN(reviewId)) {
             return NextResponse.json({ error: "無効なレビューIDです" }, { status: 400 });
@@ -32,8 +31,6 @@ export async function PUT(
             .select("user_id")
             .eq("id", reviewId)
             .single();
-
-        console.log("[Review Update] existingReview:", existingReview, "fetchError:", fetchError);
 
         if (fetchError || !existingReview) {
             console.error("Review fetch error:", fetchError);
@@ -56,6 +53,11 @@ export async function PUT(
             return NextResponse.json({ error: "評価は1から5の間である必要があります" }, { status: 400 });
         }
 
+        // コメントの長さ制限
+        if (comment !== undefined && comment.length > 2000) {
+            return NextResponse.json({ error: "コメントは2000文字以内にしてください" }, { status: 400 });
+        }
+
         // 更新データを構築
         const updateData: { rating?: number; comment?: string } = {};
         if (rating !== undefined) updateData.rating = rating;
@@ -65,16 +67,12 @@ export async function PUT(
             return NextResponse.json({ error: "更新するデータがありません" }, { status: 400 });
         }
 
-        console.log("[Review Update] updateData:", updateData);
-
         // レビューを更新（Admin Clientでバイパス）
         const { data: updateResult, error: updateError } = await adminClient
             .from("reviews")
             .update(updateData)
             .eq("id", reviewId)
             .select();
-
-        console.log("[Review Update] updateResult:", updateResult, "updateError:", updateError);
 
         if (updateError) {
             console.error("Review update error:", updateError);
@@ -83,7 +81,7 @@ export async function PUT(
 
         return NextResponse.json({ message: "レビューを更新しました" });
     } catch (err) {
-        console.error("[Review Update] Unexpected error:", err);
+        console.error("Review update unexpected error");
         return NextResponse.json({ error: "予期せぬエラーが発生しました" }, { status: 500 });
     }
 }

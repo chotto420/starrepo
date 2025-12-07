@@ -17,6 +17,7 @@ export default function ProfileHeader({ userEmail, isAdmin }: ProfileHeaderProps
         bio: string | null;
     } | null>(null);
     const [showEditModal, setShowEditModal] = useState(false);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         fetchProfile();
@@ -31,6 +32,8 @@ export default function ProfileHeader({ userEmail, isAdmin }: ProfileHeaderProps
             }
         } catch (error) {
             console.error("Failed to fetch profile:", error);
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -40,7 +43,7 @@ export default function ProfileHeader({ userEmail, isAdmin }: ProfileHeaderProps
         window.location.reload();
     };
 
-    const displayName = profile?.username || userEmail;
+    const displayName = loading ? "" : (profile?.username || userEmail);
     const avatarUrl = profile?.avatar_url;
     const bio = profile?.bio;
 
@@ -64,7 +67,11 @@ export default function ProfileHeader({ userEmail, isAdmin }: ProfileHeaderProps
                                 )}
                             </div>
                             <div>
-                                <h1 className="text-3xl font-bold text-white mb-1">{displayName}</h1>
+                                {loading ? (
+                                    <div className="h-9 w-40 bg-slate-700 rounded animate-pulse mb-1"></div>
+                                ) : (
+                                    <h1 className="text-3xl font-bold text-white mb-1">{displayName}</h1>
+                                )}
                                 <p className="text-slate-500 text-sm mb-2">{userEmail}</p>
                                 {bio && <p className="text-slate-300 max-w-2xl leading-relaxed">{bio}</p>}
                             </div>

@@ -7,9 +7,46 @@ import ToastContainer from "@/components/ToastContainer";
 
 const inter = Inter({ subsets: ["latin"] });
 
+const BASE_URL = "https://starrepo.net";
+
 export const metadata: Metadata = {
-    title: "StarRepo - Roblox Game Discovery",
-    description: "Discover hidden gems in Roblox.",
+    metadataBase: new URL(BASE_URL),
+    title: {
+        default: "StarRepo - Roblox ゲームレビューサイト",
+        template: "%s | StarRepo",
+    },
+    description: "面白いRobloxゲームをみんなで見つけよう。Place IDでゲームを登録してレビューを投稿できます。",
+    keywords: ["Roblox", "ロブロックス", "ゲームレビュー", "おすすめゲーム", "Roblox レビュー", "Roblox ランキング"],
+    authors: [{ name: "StarRepo" }],
+    openGraph: {
+        type: "website",
+        locale: "ja_JP",
+        url: BASE_URL,
+        siteName: "StarRepo",
+        title: "StarRepo - Roblox ゲームレビューサイト",
+        description: "面白いRobloxゲームをみんなで見つけよう。",
+        images: [
+            {
+                url: "/og-image.png",
+                width: 1200,
+                height: 630,
+                alt: "StarRepo",
+            },
+        ],
+    },
+    twitter: {
+        card: "summary_large_image",
+        title: "StarRepo - Roblox ゲームレビューサイト",
+        description: "面白いRobloxゲームをみんなで見つけよう。",
+        images: ["/og-image.png"],
+    },
+    robots: {
+        index: true,
+        follow: true,
+    },
+    alternates: {
+        canonical: BASE_URL,
+    },
 };
 
 export default function RootLayout({
