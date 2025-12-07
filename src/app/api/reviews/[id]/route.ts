@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 // PUT: レビューを更新
 export async function PUT(
     req: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -13,7 +13,8 @@ export async function PUT(
         return NextResponse.json({ error: "認証が必要です" }, { status: 401 });
     }
 
-    const reviewId = parseInt(params.id);
+    const { id } = await params;
+    const reviewId = parseInt(id);
     if (isNaN(reviewId)) {
         return NextResponse.json({ error: "無効なレビューIDです" }, { status: 400 });
     }
@@ -60,6 +61,7 @@ export async function PUT(
         .eq("id", reviewId);
 
     if (updateError) {
+        console.error("Review update error:", updateError);
         return NextResponse.json({ error: "レビューの更新に失敗しました" }, { status: 500 });
     }
 
@@ -69,7 +71,7 @@ export async function PUT(
 // DELETE: レビューを削除
 export async function DELETE(
     req: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -78,7 +80,8 @@ export async function DELETE(
         return NextResponse.json({ error: "認証が必要です" }, { status: 401 });
     }
 
-    const reviewId = parseInt(params.id);
+    const { id } = await params;
+    const reviewId = parseInt(id);
     if (isNaN(reviewId)) {
         return NextResponse.json({ error: "無効なレビューIDです" }, { status: 400 });
     }
