@@ -330,6 +330,18 @@ export default function RankingPage() {
                                             <Heart className="w-3 h-3 md:w-3.5 md:h-3.5" />
                                             {(place.favorite_count / 1000).toFixed(1)}K+
                                         </div>
+                                        {(place.review_count || 0) > 0 && (
+                                            <div className="flex items-center gap-1 text-blue-400 hidden sm:flex">
+                                                <MessageCircle className="w-3 h-3 md:w-3.5 md:h-3.5" />
+                                                {place.review_count}
+                                            </div>
+                                        )}
+                                        {(place.mylist_count || 0) > 0 && (
+                                            <div className="flex items-center gap-1 text-purple-400 hidden sm:flex">
+                                                <List className="w-3 h-3 md:w-3.5 md:h-3.5" />
+                                                {place.mylist_count}
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             </div>
