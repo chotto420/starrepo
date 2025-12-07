@@ -102,14 +102,14 @@ export default function GenreDetailPage() {
                 {loading ? (
                     <div className="text-center py-20 text-slate-500">読み込み中...</div>
                 ) : places.length > 0 ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
                         {places.map((place) => (
                             <div
                                 key={place.place_id}
                                 onClick={() => router.push(`/place/${place.place_id}`)}
                                 className="group cursor-pointer bg-slate-800 rounded-xl overflow-hidden border border-slate-700 hover:border-yellow-500/50 hover:shadow-lg transition-all"
                             >
-                                <div className="relative h-48 bg-slate-700">
+                                <div className="relative h-28 sm:h-48 bg-slate-700">
                                     {place.thumbnail_url ? (
                                         <img
                                             src={place.thumbnail_url}
@@ -120,19 +120,19 @@ export default function GenreDetailPage() {
                                         <div className="w-full h-full flex items-center justify-center text-slate-500">画像なし</div>
                                     )}
                                     <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 to-transparent"></div>
-                                    <div className="absolute bottom-3 left-3 right-3">
-                                        <h3 className="text-lg font-bold text-white truncate group-hover:text-yellow-400 transition-colors">
+                                    <div className="absolute bottom-2 left-2 right-2 sm:bottom-3 sm:left-3 sm:right-3">
+                                        <h3 className="text-xs sm:text-lg font-bold text-white truncate group-hover:text-yellow-400 transition-colors">
                                             {place.name}
                                         </h3>
-                                        <p className="text-xs text-slate-400 truncate">by {place.creator_name}</p>
+                                        <p className="text-[10px] sm:text-xs text-slate-400 truncate">by {place.creator_name}</p>
                                     </div>
                                 </div>
-                                <div className="p-4 flex items-center justify-between text-sm">
-                                    <div className="flex items-center gap-1">
+                                <div className="p-2 sm:p-4 flex items-center justify-between text-xs sm:text-sm">
+                                    <div className="flex items-center gap-0.5 sm:gap-1">
                                         <span className="text-yellow-500">★</span>
                                         <span>{place.average_rating ? place.average_rating.toFixed(1) : "-"}</span>
                                     </div>
-                                    <div className="flex gap-3 text-xs text-slate-400">
+                                    <div className="flex gap-2 sm:gap-3 text-[10px] sm:text-xs text-slate-400">
                                         <span>👁 {(place.visit_count / 1000000).toFixed(1)}M+</span>
                                     </div>
                                 </div>
