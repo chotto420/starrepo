@@ -29,11 +29,12 @@ type Review = {
 type ReviewsSectionProps = {
     initialReviews: Review[];
     currentUserId?: string;
+    onUpdate?: (reviews: Review[]) => void;
 };
 
 type SortOption = "newest" | "helpful" | "rating_desc" | "rating_asc";
 
-export default function ReviewsSection({ initialReviews, currentUserId }: ReviewsSectionProps) {
+export default function ReviewsSection({ initialReviews, currentUserId, onUpdate }: ReviewsSectionProps) {
     const [reviews, setReviews] = useState<Review[]>(initialReviews);
     const [editingReview, setEditingReview] = useState<Review | null>(null);
     const [deletingId, setDeletingId] = useState<number | null>(null);
@@ -120,7 +121,9 @@ export default function ReviewsSection({ initialReviews, currentUserId }: Review
                 throw new Error(data.error || "削除に失敗しました");
             }
 
-            setReviews(reviews.filter((review) => review.id !== deletingReviewId));
+            const updatedReviews = reviews.filter((review) => review.id !== deletingReviewId);
+            setReviews(updatedReviews);
+            onUpdate?.(updatedReviews);
         } catch (error) {
             console.error("Failed to delete review:", error);
             alert("レビューの削除に失敗しました");

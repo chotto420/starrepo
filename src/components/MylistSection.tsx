@@ -19,9 +19,10 @@ type MylistItem = {
 
 type MylistSectionProps = {
     initialMylist: MylistItem[];
+    onUpdate?: (mylist: MylistItem[]) => void;
 };
 
-export default function MylistSection({ initialMylist }: MylistSectionProps) {
+export default function MylistSection({ initialMylist, onUpdate }: MylistSectionProps) {
     const [mylist, setMylist] = useState<MylistItem[]>(initialMylist);
     const [deletingId, setDeletingId] = useState<number | null>(null);
     const [deletingPlaceId, setDeletingPlaceId] = useState<number | null>(null);
@@ -48,7 +49,9 @@ export default function MylistSection({ initialMylist }: MylistSectionProps) {
             }
 
             // 楽観的UI更新
-            setMylist(mylist.filter((item) => item.place_id !== deletingPlaceId));
+            const updatedMylist = mylist.filter((item) => item.place_id !== deletingPlaceId);
+            setMylist(updatedMylist);
+            onUpdate?.(updatedMylist);
         } catch (error) {
             console.error("Failed to delete from mylist:", error);
             alert("マイリストからの削除に失敗しました");

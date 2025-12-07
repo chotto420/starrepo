@@ -16,6 +16,8 @@ export default function MyPageTabs({
     currentUserId: string;
 }) {
     const [activeTab, setActiveTab] = useState<Tab>("mylist");
+    const [reviews, setReviews] = useState(initialReviews);
+    const [mylist, setMylist] = useState(initialMylist);
 
     return (
         <div>
@@ -34,7 +36,7 @@ export default function MyPageTabs({
                     <span className="flex items-center justify-center gap-2">
                         <span>📚</span> マイリスト
                         <span className="bg-slate-800 text-xs px-2 py-0.5 rounded-full text-slate-300">
-                            {initialMylist.length}
+                            {mylist.length}
                         </span>
                     </span>
                     {activeTab === "mylist" && (
@@ -54,7 +56,7 @@ export default function MyPageTabs({
                     <span className="flex items-center justify-center gap-2">
                         <span>✍️</span> レビュー
                         <span className="bg-slate-800 text-xs px-2 py-0.5 rounded-full text-slate-300">
-                            {initialReviews.length}
+                            {reviews.length}
                         </span>
                     </span>
                     {activeTab === "reviews" && (
@@ -67,11 +69,18 @@ export default function MyPageTabs({
             <div className="min-h-[400px]">
                 {activeTab === "mylist" ? (
                     <div className="animate-fade-in-up">
-                        <MylistSection initialMylist={initialMylist} />
+                        <MylistSection
+                            initialMylist={mylist}
+                            onUpdate={setMylist}
+                        />
                     </div>
                 ) : (
                     <div className="animate-fade-in-up">
-                        <ReviewsSection initialReviews={initialReviews} currentUserId={currentUserId} />
+                        <ReviewsSection
+                            initialReviews={reviews}
+                            currentUserId={currentUserId}
+                            onUpdate={setReviews}
+                        />
                     </div>
                 )}
             </div>
