@@ -71,13 +71,10 @@ export default function ConfirmModal({
                         {cancelText}
                     </button>
                     <button
-                        onClick={() => {
-                            onConfirm();
-                            onCancel();
-                        }}
+                        onClick={onConfirm}
                         className={`flex-1 px-4 py-2 rounded-lg transition-colors font-medium ${danger
-                                ? "bg-red-500 hover:bg-red-600 text-white"
-                                : "bg-yellow-500 hover:bg-yellow-400 text-black"
+                            ? "bg-red-500 hover:bg-red-600 text-white"
+                            : "bg-yellow-500 hover:bg-yellow-400 text-black"
                             }`}
                     >
                         {confirmText}
