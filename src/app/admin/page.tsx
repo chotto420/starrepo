@@ -73,7 +73,7 @@ export default function AdminDashboard() {
     };
 
     const handleDeleteGame = async (placeId: number) => {
-        if (!confirm(`ゲーム (ID: ${placeId}) を削除しますか？\n関連するレビューとマイリストアイテムも削除されます。`)) {
+        if (!window.confirm(`ゲーム (ID: ${placeId}) を削除しますか？\n関連するレビューとマイリストアイテムも削除されます。`)) {
             return;
         }
 

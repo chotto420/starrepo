@@ -68,7 +68,7 @@ export default function AdminContactsPage() {
     };
 
     const deleteContact = async (id: number) => {
-        if (!confirm("このお問い合わせを削除しますか？")) return;
+        if (!window.confirm("このお問い合わせを削除しますか？")) return;
 
         try {
             const res = await fetch(`/api/admin/contacts/${id}`, {

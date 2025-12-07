@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react";
 import Link from "next/link";
 import EditReviewModal from "./EditReviewModal";
+import ConfirmModal from "./ConfirmModal";
 import { ThumbsUp, Star, Filter, Heart, Flag, X } from "lucide-react";
 
 type Review = {
@@ -36,6 +37,7 @@ export default function ReviewsSection({ initialReviews, currentUserId }: Review
     const [reviews, setReviews] = useState<Review[]>(initialReviews);
     const [editingReview, setEditingReview] = useState<Review | null>(null);
     const [deletingId, setDeletingId] = useState<number | null>(null);
+    const [deletingReviewId, setDeletingReviewId] = useState<number | null>(null);
     const [sortOption, setSortOption] = useState<SortOption>("newest");
     const [likingId, setLikingId] = useState<number | null>(null);
     const [reportingReview, setReportingReview] = useState<Review | null>(null);
@@ -99,15 +101,17 @@ export default function ReviewsSection({ initialReviews, currentUserId }: Review
         }
     };
 
-    const handleDelete = async (reviewId: number) => {
-        if (!confirm("このレビューを削除しますか？")) {
-            return;
-        }
+    const handleDeleteClick = (reviewId: number) => {
+        setDeletingReviewId(reviewId);
+    };
 
-        setDeletingId(reviewId);
+    const handleDeleteConfirm = async () => {
+        if (!deletingReviewId) return;
+
+        setDeletingId(deletingReviewId);
 
         try {
-            const response = await fetch(`/api/reviews/${reviewId}`, {
+            const response = await fetch(`/api/reviews/${deletingReviewId}`, {
                 method: "DELETE",
             });
 
@@ -116,12 +120,13 @@ export default function ReviewsSection({ initialReviews, currentUserId }: Review
                 throw new Error(data.error || "削除に失敗しました");
             }
 
-            setReviews(reviews.filter((review) => review.id !== reviewId));
+            setReviews(reviews.filter((review) => review.id !== deletingReviewId));
         } catch (error) {
             console.error("Failed to delete review:", error);
             alert("レビューの削除に失敗しました");
         } finally {
             setDeletingId(null);
+            setDeletingReviewId(null);
         }
     };
 
@@ -290,7 +295,7 @@ export default function ReviewsSection({ initialReviews, currentUserId }: Review
                                                 編集
                                             </button>
                                             <button
-                                                onClick={() => handleDelete(review.id)}
+                                                onClick={() => handleDeleteClick(review.id)}
                                                 className="text-xs text-red-900/50 hover:text-red-400 transition-colors"
                                             >
                                                 削除
@@ -394,6 +399,18 @@ export default function ReviewsSection({ initialReviews, currentUserId }: Review
                     </div>
                 </div>
             )}
+
+            {/* Delete Confirmation Modal */}
+            <ConfirmModal
+                isOpen={deletingReviewId !== null}
+                title="レビューを削除"
+                message="このレビューを削除しますか？"
+                onConfirm={handleDeleteConfirm}
+                onCancel={() => setDeletingReviewId(null)}
+                confirmText="削除する"
+                cancelText="キャンセル"
+                danger={true}
+            />
         </>
     );
 }
