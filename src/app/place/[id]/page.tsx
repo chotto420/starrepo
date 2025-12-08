@@ -249,10 +249,10 @@ export default async function PlacePage({ params }: { params: Promise<{ id: stri
                   href={`https://www.roblox.com/games/${place.place_id}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex-1 text-center bg-green-600 hover:bg-green-500 text-white font-bold py-2.5 px-4 sm:py-3 sm:px-8 rounded-xl transition-all shadow-lg shadow-green-900/20 transform hover:-translate-y-0.5 flex items-center justify-center gap-1.5 sm:gap-2 text-sm sm:text-base"
+                  className="flex-1 text-center bg-green-600 hover:bg-green-500 text-white font-bold py-2.5 px-3 sm:py-3 sm:px-6 rounded-xl transition-all shadow-lg shadow-green-900/20 transform hover:-translate-y-0.5 flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-base whitespace-nowrap"
                 >
-                  <Play className="w-4 h-4 sm:w-5 sm:h-5 fill-current" />
-                  Robloxでプレイ
+                  <Play className="w-4 h-4 sm:w-5 sm:h-5 fill-current shrink-0" />
+                  プレイ
                 </a>
                 <MylistButton placeId={place.place_id} placeName={place.name} />
               </div>
