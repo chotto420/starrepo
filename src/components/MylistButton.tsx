@@ -80,13 +80,13 @@ export default function MylistButton({ placeId, placeName }: MylistButtonProps) 
             onClick={toggleMylist}
             disabled={processing}
             className={`px-6 py-3 font-semibold rounded-lg transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed ${isInMylist
-                    ? "bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-400 hover:to-orange-400 text-black shadow-yellow-500/30 hover:shadow-yellow-500/50"
-                    : "bg-slate-700 hover:bg-slate-600 text-white border border-slate-600 hover:border-yellow-500/50"
+                ? "bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-400 hover:to-orange-400 text-black shadow-yellow-500/30 hover:shadow-yellow-500/50"
+                : "bg-slate-700 hover:bg-slate-600 text-white border border-slate-600 hover:border-yellow-500/50"
                 }`}
         >
             <span className="flex items-center gap-2">
                 <span className="text-xl">{isInMylist ? "✓" : "📚"}</span>
-                {processing ? "処理中..." : isInMylist ? "マイリスト登録済み" : "マイリストに追加"}
+                {processing ? "処理中..." : isInMylist ? "登録済み" : "マイリスト"}
             </span>
         </button>
     );
