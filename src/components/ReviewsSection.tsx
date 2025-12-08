@@ -232,9 +232,20 @@ export default function ReviewsSection({ initialReviews, currentUserId, onUpdate
 
                             <div className="flex-1 min-w-0">
                                 <div className="flex items-center justify-between mb-1">
-                                    <span className="font-semibold text-slate-200">
-                                        {review.profiles?.username || "匿名ユーザー"}
-                                    </span>
+                                    <div className="flex flex-col">
+                                        <span className="font-semibold text-slate-200">
+                                            {review.profiles?.username || "匿名ユーザー"}
+                                        </span>
+                                        {/* Game name link - shown on MyPage */}
+                                        {review.places && (
+                                            <Link
+                                                href={`/place/${review.places.place_id}`}
+                                                className="text-xs text-yellow-400/80 hover:text-yellow-400 transition-colors truncate max-w-[200px] sm:max-w-none"
+                                            >
+                                                🎮 {review.places.name}
+                                            </Link>
+                                        )}
+                                    </div>
                                     {/* Edit/Delete visible if owned (logic needing review.user_id) */}
                                     {/* For now keeping original layout style but adding standard date */}
                                     <span className="text-slate-500 text-xs">
