@@ -261,16 +261,16 @@ export default function RankingPage() {
                         ))}
                     </div>
                 ) : (
-                    <div className="space-y-3">
+                    <div className="space-y-2 sm:space-y-3">
                         {sortedPlaces.slice(0, 50).map((place, index) => (
                             <div
                                 key={place.place_id}
                                 onClick={() => router.push(`/place/${place.place_id}`)}
-                                className="group cursor-pointer bg-[#151921] hover:bg-[#1c222c] rounded-xl p-3 md:p-4 border border-slate-800 hover:border-slate-700 transition-all flex items-center gap-4"
+                                className="group cursor-pointer bg-[#151921] hover:bg-[#1c222c] rounded-xl p-2 sm:p-3 md:p-4 border border-slate-800 hover:border-slate-700 transition-all flex items-center gap-2 sm:gap-4"
                             >
                                 {/* Rank */}
                                 <div
-                                    className={`text-2xl md:text-3xl font-bold w-12 md:w-16 text-center shrink-0 font-mono ${index === 0
+                                    className={`text-lg sm:text-2xl md:text-3xl font-bold w-7 sm:w-12 md:w-16 text-center shrink-0 font-mono ${index === 0
                                         ? "text-yellow-400 drop-shadow-[0_0_8px_rgba(250,204,21,0.3)]"
                                         : index === 1
                                             ? "text-slate-300"
@@ -283,7 +283,7 @@ export default function RankingPage() {
                                 </div>
 
                                 {/* Thumbnail */}
-                                <div className="w-24 h-14 md:w-40 md:h-24 bg-slate-800 rounded-lg overflow-hidden shrink-0 relative">
+                                <div className="w-16 h-10 sm:w-24 sm:h-14 md:w-40 md:h-24 bg-slate-800 rounded-lg overflow-hidden shrink-0 relative">
                                     {place.thumbnail_url ? (
                                         <img
                                             src={place.thumbnail_url}
@@ -292,17 +292,17 @@ export default function RankingPage() {
                                         />
                                     ) : (
                                         <div className="w-full h-full flex items-center justify-center text-slate-600">
-                                            <Gem className="w-8 h-8 opacity-20" />
+                                            <Gem className="w-6 h-6 sm:w-8 sm:h-8 opacity-20" />
                                         </div>
                                     )}
                                 </div>
 
                                 {/* Info */}
-                                <div className="flex-1 min-w-0 py-1">
-                                    <h3 className="text-base md:text-lg font-bold text-slate-100 truncate group-hover:text-yellow-400 transition-colors">
+                                <div className="flex-1 min-w-0 py-0.5 sm:py-1">
+                                    <h3 className="text-sm sm:text-base md:text-lg font-bold text-slate-100 truncate group-hover:text-yellow-400 transition-colors">
                                         {place.name}
                                     </h3>
-                                    <div className="flex items-center gap-2 text-xs md:text-sm text-slate-500 mb-2">
+                                    <div className="flex items-center gap-2 text-[10px] sm:text-xs md:text-sm text-slate-500 mb-1 sm:mb-2">
                                         <span className="truncate">by {place.creator_name}</span>
                                         {place.genre && (
                                             <span className="bg-slate-800 text-slate-400 px-2 py-0.5 rounded text-[10px] hidden sm:inline-block border border-slate-700">
@@ -311,19 +311,19 @@ export default function RankingPage() {
                                         )}
                                     </div>
 
-                                    <div className="flex items-center gap-4 text-xs md:text-sm text-slate-400">
-                                        <div className="flex items-center gap-1 text-yellow-500 font-bold bg-yellow-500/10 px-1.5 py-0.5 rounded">
-                                            <Star className="w-3 h-3 md:w-3.5 md:h-3.5 fill-yellow-500" />
+                                    <div className="flex items-center gap-2 sm:gap-4 text-[10px] sm:text-xs md:text-sm text-slate-400">
+                                        <div className="flex items-center gap-0.5 sm:gap-1 text-yellow-500 font-bold bg-yellow-500/10 px-1 sm:px-1.5 py-0.5 rounded">
+                                            <Star className="w-2.5 h-2.5 sm:w-3 sm:h-3 md:w-3.5 md:h-3.5 fill-yellow-500" />
                                             {place.average_rating ? place.average_rating.toFixed(1) : "-"}
                                         </div>
                                         {place.playing !== null && place.playing > 0 && (
-                                            <div className="flex items-center gap-1 text-green-400 bg-green-500/10 px-1.5 py-0.5 rounded font-medium hidden sm:flex">
-                                                <Users className="w-3 h-3 md:w-3.5 md:h-3.5" />
+                                            <div className="flex items-center gap-0.5 sm:gap-1 text-green-400 bg-green-500/10 px-1 sm:px-1.5 py-0.5 rounded font-medium hidden sm:flex">
+                                                <Users className="w-2.5 h-2.5 sm:w-3 sm:h-3 md:w-3.5 md:h-3.5" />
                                                 {place.playing.toLocaleString()}
                                             </div>
                                         )}
-                                        <div className="flex items-center gap-1">
-                                            <Eye className="w-3 h-3 md:w-3.5 md:h-3.5" />
+                                        <div className="flex items-center gap-0.5 sm:gap-1">
+                                            <Eye className="w-2.5 h-2.5 sm:w-3 sm:h-3 md:w-3.5 md:h-3.5" />
                                             {(place.visit_count / 1000000).toFixed(1)}M+
                                         </div>
                                         <div className="flex items-center gap-1 hidden sm:flex">
