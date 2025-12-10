@@ -68,7 +68,7 @@ export default function CreatorModal({ isOpen, onClose }: CreatorModalProps) {
                     </p>
 
                     {/* Members Grid */}
-                    <div className="grid grid-cols-3 gap-4 mb-8">
+                    <div className="grid grid-cols-5 gap-3 mb-8">
                         <Member
                             name="Katsuwo"
                             image="/images/creators/member_katsuwo.png"
@@ -83,6 +83,16 @@ export default function CreatorModal({ isOpen, onClose }: CreatorModalProps) {
                             name="Ko-ta"
                             image="/images/creators/member_kota.png"
                             color="bg-yellow-500/10 text-yellow-400"
+                        />
+                        <Member
+                            name="?"
+                            image="/images/creators/mascot_orange.png"
+                            color="bg-orange-500/10 text-orange-400"
+                        />
+                        <Member
+                            name="?"
+                            image="/images/creators/mascot_pink.png"
+                            color="bg-pink-500/10 text-pink-400"
                         />
                     </div>
 
