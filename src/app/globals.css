@@ -192,7 +192,7 @@ body {
     height: 48px;
     animation: roll-across 12s linear forwards;
     pointer-events: auto;
-    z-index: 1;
+    z-index: 50;
     cursor: pointer;
 }
 
