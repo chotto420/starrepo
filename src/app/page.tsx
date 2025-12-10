@@ -72,8 +72,10 @@ export default function Home() {
                 <div className="absolute inset-0 z-0 overflow-hidden">
                     <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-purple-600/20 rounded-full blur-[120px] opacity-30 mix-blend-screen animate-pulse"></div>
                     <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-yellow-600/10 rounded-full blur-[120px] opacity-30 mix-blend-screen animate-pulse delay-1000"></div>
+                </div>
 
-                    {/* Rolling Mascot (random, rare appearance) */}
+                {/* Rolling Mascot - highest z-index, separate from background */}
+                <div className="fixed inset-0 z-[9999] pointer-events-none overflow-hidden">
                     <RollingMascot />
                 </div>
 
