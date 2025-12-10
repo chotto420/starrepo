@@ -10,7 +10,16 @@ export async function GET(request: NextRequest) {
     }
 
     try {
-        // Select 10 places that haven't been synced recently (oldest last_synced_at)
+        // Step 1: Take daily snapshot of ALL places (bulk copy from places to history)
+        const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+        const { error: snapshotError } = await supabase.rpc('take_daily_snapshot', { snapshot_date: today });
+
+        if (snapshotError) {
+            console.error("Snapshot error:", snapshotError);
+            // Continue with updates even if snapshot fails
+        }
+
+        // Step 2: Select 10 places that haven't been synced recently (oldest last_synced_at)
         const { data: places, error } = await supabase
             .from("places")
             .select("place_id")
@@ -18,13 +27,13 @@ export async function GET(request: NextRequest) {
             .limit(10);
 
         if (error) throw error;
-        if (!places || places.length === 0) return NextResponse.json({ message: "No places to sync" });
+        if (!places || places.length === 0) return NextResponse.json({ message: "No places to sync", snapshotTaken: !snapshotError });
 
+        // Step 3: Update each place with fresh Roblox data
         const results = [];
         for (const place of places) {
             const gameData = await getRobloxGameData(place.place_id);
             if (gameData) {
-                // Update current place data
                 await supabase.from("places").update({
                     name: gameData.name,
                     description: gameData.description,
@@ -39,27 +48,19 @@ export async function GET(request: NextRequest) {
                     last_synced_at: new Date().toISOString(),
                 }).eq("place_id", place.place_id);
 
-                // Save daily snapshot for trending ranking
-                await supabase.from("place_stats_history").upsert({
-                    place_id: place.place_id,
-                    visit_count: gameData.visits,
-                    favorite_count: gameData.favorites,
-                    playing: gameData.playing,
-                    like_count: gameData.upVotes,
-                    recorded_at: new Date().toISOString().split('T')[0], // YYYY-MM-DD
-                }, {
-                    onConflict: 'place_id,recorded_at'
-                });
-
                 results.push({ id: place.place_id, status: "updated" });
             } else {
                 results.push({ id: place.place_id, status: "failed" });
             }
+
+            // Rate limit: wait 500ms between requests to avoid Roblox API throttling
+            await new Promise(resolve => setTimeout(resolve, 500));
         }
 
-        return NextResponse.json({ results });
+        return NextResponse.json({ snapshotTaken: !snapshotError, results });
     } catch (error) {
         console.error("Sync Error:", error);
         return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
     }
 }
+
