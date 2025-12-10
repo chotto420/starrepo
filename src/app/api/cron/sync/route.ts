@@ -24,6 +24,7 @@ export async function GET(request: NextRequest) {
         for (const place of places) {
             const gameData = await getRobloxGameData(place.place_id);
             if (gameData) {
+                // Update current place data
                 await supabase.from("places").update({
                     name: gameData.name,
                     description: gameData.description,
@@ -37,6 +38,19 @@ export async function GET(request: NextRequest) {
                     last_updated_at: gameData.updated,
                     last_synced_at: new Date().toISOString(),
                 }).eq("place_id", place.place_id);
+
+                // Save daily snapshot for trending ranking
+                await supabase.from("place_stats_history").upsert({
+                    place_id: place.place_id,
+                    visit_count: gameData.visits,
+                    favorite_count: gameData.favorites,
+                    playing: gameData.playing,
+                    like_count: gameData.upVotes,
+                    recorded_at: new Date().toISOString().split('T')[0], // YYYY-MM-DD
+                }, {
+                    onConflict: 'place_id,recorded_at'
+                });
+
                 results.push({ id: place.place_id, status: "updated" });
             } else {
                 results.push({ id: place.place_id, status: "failed" });

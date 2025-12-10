@@ -37,11 +37,11 @@ ON user_mylist(user_id, place_id);
 -- RLSを有効化
 ALTER TABLE user_mylist ENABLE ROW LEVEL SECURITY;
 
--- ユーザーは自分のマイリストのみ閲覧可能
-CREATE POLICY "Users can view their own mylist"
+-- 全ユーザーがマイリストデータを閲覧可能（ランキング用）
+CREATE POLICY "Anyone can view mylist"
 ON user_mylist
 FOR SELECT
-USING (auth.uid() = user_id);
+USING (true);
 
 -- ユーザーは自分のマイリストに追加可能
 CREATE POLICY "Users can add to their mylist"

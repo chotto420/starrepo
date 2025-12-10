@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { getGenreName } from "@/lib/roblox";
 import Link from "next/link";
-import { Trophy, Users, Star, Gem, Heart, ChevronLeft, Eye, MessageCircle, List } from "lucide-react";
+import { Trophy, Users, Star, Gem, Heart, ChevronLeft, Eye, MessageCircle, List, TrendingUp } from "lucide-react";
 
 const supabase = createClient();
 
@@ -20,10 +20,11 @@ type Place = {
     average_rating?: number;
     review_count?: number;
     mylist_count?: number;
+    trend_score?: number;
     genre: string | null;
 };
 
-type RankingType = "overall" | "playing" | "favorites" | "rating" | "reviews" | "mylist" | "hidden";
+type RankingType = "overall" | "playing" | "favorites" | "trending" | "rating" | "reviews" | "mylist" | "hidden";
 
 export default function RankingPage() {
     const [places, setPlaces] = useState<Place[]>([]);
@@ -113,16 +114,42 @@ export default function RankingPage() {
                 }
             }
 
+            // Fetch yesterday's stats for trending calculation
+            const yesterday = new Date();
+            yesterday.setDate(yesterday.getDate() - 1);
+            const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+            const { data: historyData } = await supabase
+                .from("place_stats_history")
+                .select("place_id, favorite_count")
+                .eq("recorded_at", yesterdayStr)
+                .in("place_id", placeIds);
+
+            const historyMap = new Map<number, number>();
+            if (historyData) {
+                for (const h of historyData) {
+                    historyMap.set(h.place_id, h.favorite_count || 0);
+                }
+            }
+
             const withRatings = placeData.map((p: Place) => {
                 const stats = reviewsMap.get(p.place_id);
                 const count = stats?.count || 0;
                 const avg = count > 0 ? stats!.sum / count : 0;
+
+                // Calculate trend score (favorite increase from yesterday)
+                const yesterdayFav = historyMap.get(p.place_id) || 0;
+                const currentFav = p.favorite_count || 0;
+                const trendScore = yesterdayFav > 0
+                    ? ((currentFav - yesterdayFav) / yesterdayFav) * 100
+                    : 0;
 
                 return {
                     ...p,
                     average_rating: avg,
                     review_count: count,
                     mylist_count: mylistMap.get(p.place_id) || 0,
+                    trend_score: trendScore,
                 };
             });
 
@@ -136,13 +163,14 @@ export default function RankingPage() {
     const sortedPlaces = [...places].sort((a, b) => {
         switch (rankingType) {
             case "overall":
-                const scoreA = (a.average_rating || 0) * Math.log10(a.visit_count || 1);
-                const scoreB = (b.average_rating || 0) * Math.log10(b.visit_count || 1);
-                return scoreB - scoreA;
+                // Roblox公式データのみ使用（訪問数ベース）
+                return (b.visit_count || 0) - (a.visit_count || 0);
             case "playing":
                 return (b.playing || 0) - (a.playing || 0);
             case "favorites":
                 return (b.favorite_count || 0) - (a.favorite_count || 0);
+            case "trending":
+                return (b.trend_score || 0) - (a.trend_score || 0);
             case "rating":
                 if ((a.review_count || 0) < 3) return 1;
                 if ((b.review_count || 0) < 3) return -1;
@@ -166,6 +194,7 @@ export default function RankingPage() {
         { id: "overall", label: "総合", icon: Trophy },
         { id: "playing", label: "今プレイ中", icon: Users },
         { id: "favorites", label: "お気に入り", icon: Heart },
+        { id: "trending", label: "急上昇", icon: TrendingUp },
     ];
 
     const siteTabs = [

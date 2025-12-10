@@ -41,9 +41,9 @@ export default function CreatorModal({ isOpen, onClose }: CreatorModalProps) {
                 {/* Close Button */}
                 <button
                     onClick={onClose}
-                    className="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors z-10 p-1 hover:bg-slate-800 rounded-full"
+                    className="absolute top-4 right-4 text-white hover:text-yellow-400 transition-colors z-10 p-2 bg-black/70 hover:bg-black/90 rounded-full shadow-lg"
                 >
-                    <X className="w-6 h-6" />
+                    <X className="w-5 h-5" />
                 </button>
 
                 {/* Header Image */}
@@ -64,7 +64,7 @@ export default function CreatorModal({ isOpen, onClose }: CreatorModalProps) {
 
                     <p className="text-slate-300 mb-8 max-w-sm mx-auto leading-relaxed">
                         YoutubeでRobloxのゲームを作ったり<br />
-                        配信したりしているおじさん達です。
+                        配信したりしているおっさん達です。
                     </p>
 
                     {/* Members Grid */}
@@ -87,6 +87,9 @@ export default function CreatorModal({ isOpen, onClose }: CreatorModalProps) {
                     </div>
 
                     {/* Social Links */}
+                    <p className="text-sm text-slate-400 mb-3">
+                        🙏 チャンネル登録・フォローお願いします！
+                    </p>
                     <div className="flex gap-4 justify-center">
                         <SocialButton
                             href="https://www.youtube.com/@ossansROB"

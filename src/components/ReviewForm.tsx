@@ -83,7 +83,7 @@ export default function ReviewForm({
             }
 
             setComment("");
-            router.refresh(); // Refresh server components to show new review
+            window.location.reload(); // Force reload to show new review
         } catch (err) {
             setError("レビューの投稿に失敗しました");
         } finally {
