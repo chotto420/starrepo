@@ -47,28 +47,28 @@ export default function CreatorModal({ isOpen, onClose }: CreatorModalProps) {
                 </button>
 
                 {/* Header Image */}
-                <div className="relative w-full aspect-video bg-gradient-to-b from-slate-800 to-[#1A1D24]">
+                <div className="relative w-full h-48 sm:h-56 bg-gradient-to-b from-slate-800 to-[#1A1D24] overflow-hidden">
                     <Image
                         src="/images/creators/group_visual.png"
                         alt="OssansRob Group"
                         fill
-                        className="object-cover"
+                        className="object-cover object-[center_38%]"
                     />
-                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-[#1A1D24] to-transparent h-20" />
+                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-[#1A1D24] to-transparent h-12 sm:h-16" />
                 </div>
 
-                <div className="p-6 pt-2 text-center">
-                    <h2 className="text-2xl font-bold text-white mb-2 font-mono">
+                <div className="p-4 sm:p-6 pt-1 sm:pt-2 text-center">
+                    <h2 className="text-lg sm:text-2xl font-bold text-white mb-1 sm:mb-2 font-mono">
                         Produced by <span className="text-yellow-400">OssansRob</span>
                     </h2>
 
-                    <p className="text-slate-300 mb-8 max-w-sm mx-auto leading-relaxed">
+                    <p className="text-xs sm:text-base text-slate-300 mb-4 sm:mb-8 max-w-sm mx-auto leading-relaxed">
                         YoutubeでRobloxのゲームを作ったり<br />
                         配信したりしているおっさん達です。
                     </p>
 
                     {/* Members Grid */}
-                    <div className="grid grid-cols-3 gap-4 mb-8">
+                    <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-4 sm:mb-8">
                         <Member
                             name="Katsuwo"
                             image="/images/creators/member_katsuwo.png"
@@ -87,7 +87,7 @@ export default function CreatorModal({ isOpen, onClose }: CreatorModalProps) {
                     </div>
 
                     {/* Social Links */}
-                    <p className="text-sm text-slate-400 mb-3">
+                    <p className="text-[10px] sm:text-sm text-slate-400 mb-2 sm:mb-3">
                         🙏 チャンネル登録・フォローお願いします！
                     </p>
                     <div className="flex gap-4 justify-center">
@@ -112,8 +112,8 @@ export default function CreatorModal({ isOpen, onClose }: CreatorModalProps) {
 
 function Member({ name, image, color }: { name: string; image: string; color: string }) {
     return (
-        <div className="flex flex-col items-center gap-2 group">
-            <div className={`relative w-20 h-20 rounded-xl overflow-hidden border-2 border-transparent group-hover:border-slate-500 transition-all duration-300 ring-2 ring-slate-800 shadow-lg ${color.replace('text-', 'ring-')}`}>
+        <div className="flex flex-col items-center gap-1 sm:gap-2 group">
+            <div className={`relative w-14 h-14 sm:w-20 sm:h-20 rounded-xl overflow-hidden border-2 border-transparent group-hover:border-slate-500 transition-all duration-300 ring-2 ring-slate-800 shadow-lg ${color.replace('text-', 'ring-')}`}>
                 <Image
                     src={image}
                     alt={name}
@@ -121,7 +121,7 @@ function Member({ name, image, color }: { name: string; image: string; color: st
                     className="object-cover"
                 />
             </div>
-            <span className={`font-bold text-sm ${color} px-2 py-0.5 rounded-full`}>
+            <span className={`font-bold text-[10px] sm:text-sm ${color} px-1.5 sm:px-2 py-0.5 rounded-full`}>
                 {name}
             </span>
         </div>
@@ -133,7 +133,7 @@ function SocialButton({ href, label, icon, className }: { href: string; label: s
         <Link
             href={href}
             target="_blank"
-            className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-transform hover:scale-105 active:scale-95 shadow-lg ${className}`}
+            className={`flex items-center gap-1.5 sm:gap-2 px-4 sm:px-6 py-2 sm:py-3 rounded-xl font-bold text-sm sm:text-base transition-transform hover:scale-105 active:scale-95 shadow-lg ${className}`}
         >
             {icon}
             <span>{label}</span>
