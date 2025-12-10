@@ -165,46 +165,34 @@ body {
     animation: scaleIn 0.2s ease-out;
 }
 
-/* Shooting Star Animation */
-@keyframes shooting-star {
+/* Rolling Mascot Animation */
+@keyframes roll-across {
     0% {
-        transform: translateX(0) translateY(0);
+        transform: translateX(100vw) rotate(0deg);
+        opacity: 0;
+    }
+
+    5% {
         opacity: 1;
     }
 
-    70% {
+    95% {
         opacity: 1;
     }
 
     100% {
-        transform: translateX(-500px) translateY(300px);
+        transform: translateX(-100px) rotate(-720deg);
         opacity: 0;
     }
 }
 
-.shooting-star {
+.rolling-mascot {
     position: absolute;
-    width: 8px;
-    height: 8px;
-    background: linear-gradient(135deg, #fff 0%, #ffd700 50%, #fff 100%);
-    border-radius: 50%;
-    box-shadow:
-        0 0 10px 4px rgba(255, 255, 255, 0.8),
-        0 0 20px 8px rgba(255, 215, 0, 0.6),
-        0 0 30px 12px rgba(255, 255, 255, 0.3);
-    animation: shooting-star 4s ease-in-out infinite;
-}
-
-.shooting-star::after {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 100%;
-    transform: translateY(-50%);
-    width: 120px;
-    height: 3px;
-    background: linear-gradient(to left, transparent, rgba(255, 255, 255, 0.9), rgba(255, 215, 0, 0.6));
-    border-radius: 100px;
+    width: 48px;
+    height: 48px;
+    animation: roll-across 12s linear infinite;
+    pointer-events: none;
+    z-index: 1;
 }
 
 /* Bounce slow animation for Easter egg */
