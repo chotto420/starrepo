@@ -341,34 +341,78 @@ export default function RankingPage() {
                                     </div>
 
                                     <div className="flex items-center gap-2 sm:gap-4 text-[10px] sm:text-xs md:text-sm text-slate-400">
+                                        {/* 1st: Always show rating */}
                                         <div className="flex items-center gap-0.5 sm:gap-1 text-yellow-500 font-bold bg-yellow-500/10 px-1 sm:px-1.5 py-0.5 rounded">
                                             <Star className="w-2.5 h-2.5 sm:w-3 sm:h-3 md:w-3.5 md:h-3.5 fill-yellow-500" />
                                             {place.average_rating ? place.average_rating.toFixed(1) : "-"}
                                         </div>
-                                        {place.playing !== null && place.playing > 0 && (
-                                            <div className="flex items-center gap-0.5 sm:gap-1 text-green-400 bg-green-500/10 px-1 sm:px-1.5 py-0.5 rounded font-medium hidden sm:flex">
+
+                                        {/* 2nd: Ranking-specific metric */}
+                                        {rankingType === "trending" && (
+                                            <div className={`flex items-center gap-0.5 sm:gap-1 font-bold px-1.5 sm:px-2 py-0.5 rounded ${(place.trend_score || 0) > 0
+                                                ? "text-green-400 bg-green-500/10"
+                                                : (place.trend_score || 0) < 0
+                                                    ? "text-red-400 bg-red-500/10"
+                                                    : "text-slate-400 bg-slate-700/50"
+                                                }`}>
+                                                <TrendingUp className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                                                {(place.trend_score || 0) > 0 ? "+" : ""}{(place.trend_score || 0).toFixed(1)}%
+                                            </div>
+                                        )}
+                                        {rankingType === "playing" && place.playing !== null && place.playing > 0 && (
+                                            <div className="flex items-center gap-0.5 sm:gap-1 text-green-400 bg-green-500/10 px-1 sm:px-1.5 py-0.5 rounded font-medium">
                                                 <Users className="w-2.5 h-2.5 sm:w-3 sm:h-3 md:w-3.5 md:h-3.5" />
                                                 {place.playing.toLocaleString()}
                                             </div>
                                         )}
-                                        <div className="flex items-center gap-0.5 sm:gap-1">
-                                            <Eye className="w-2.5 h-2.5 sm:w-3 sm:h-3 md:w-3.5 md:h-3.5" />
-                                            {(place.visit_count / 1000000).toFixed(1)}M+
-                                        </div>
-                                        <div className="flex items-center gap-1 hidden sm:flex">
-                                            <Heart className="w-3 h-3 md:w-3.5 md:h-3.5" />
-                                            {(place.favorite_count / 1000).toFixed(1)}K+
-                                        </div>
-                                        {(place.review_count || 0) > 0 && (
-                                            <div className="flex items-center gap-1 text-blue-400 hidden sm:flex">
-                                                <MessageCircle className="w-3 h-3 md:w-3.5 md:h-3.5" />
-                                                {place.review_count}
+                                        {rankingType === "favorites" && (
+                                            <div className="flex items-center gap-0.5 sm:gap-1 text-pink-400 bg-pink-500/10 px-1 sm:px-1.5 py-0.5 rounded font-medium">
+                                                <Heart className="w-2.5 h-2.5 sm:w-3 sm:h-3 md:w-3.5 md:h-3.5 fill-pink-400" />
+                                                {(place.favorite_count / 1000).toFixed(1)}K+
                                             </div>
                                         )}
-                                        {(place.mylist_count || 0) > 0 && (
-                                            <div className="flex items-center gap-1 text-purple-400 hidden sm:flex">
-                                                <List className="w-3 h-3 md:w-3.5 md:h-3.5" />
-                                                {place.mylist_count}
+                                        {rankingType === "overall" && (
+                                            <div className="flex items-center gap-0.5 sm:gap-1 text-slate-300 bg-slate-700/50 px-1 sm:px-1.5 py-0.5 rounded font-medium">
+                                                <Eye className="w-2.5 h-2.5 sm:w-3 sm:h-3 md:w-3.5 md:h-3.5" />
+                                                {(place.visit_count / 1000000).toFixed(1)}M+
+                                            </div>
+                                        )}
+                                        {rankingType === "reviews" && (
+                                            <div className="flex items-center gap-0.5 sm:gap-1 text-blue-400 bg-blue-500/10 px-1 sm:px-1.5 py-0.5 rounded font-medium">
+                                                <MessageCircle className="w-2.5 h-2.5 sm:w-3 sm:h-3 md:w-3.5 md:h-3.5" />
+                                                {place.review_count || 0}
+                                            </div>
+                                        )}
+                                        {rankingType === "mylist" && (
+                                            <div className="flex items-center gap-0.5 sm:gap-1 text-purple-400 bg-purple-500/10 px-1 sm:px-1.5 py-0.5 rounded font-medium">
+                                                <List className="w-2.5 h-2.5 sm:w-3 sm:h-3 md:w-3.5 md:h-3.5" />
+                                                {place.mylist_count || 0}
+                                            </div>
+                                        )}
+                                        {rankingType === "hidden" && (
+                                            <div className="flex items-center gap-0.5 sm:gap-1 text-slate-400 bg-slate-700/50 px-1 sm:px-1.5 py-0.5 rounded">
+                                                <Eye className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                                                {(place.visit_count / 1000000).toFixed(1)}M
+                                            </div>
+                                        )}
+
+                                        {/* Secondary stats - hidden on mobile */}
+                                        {rankingType !== "playing" && place.playing !== null && place.playing > 0 && (
+                                            <div className="items-center gap-0.5 sm:gap-1 text-green-400 bg-green-500/10 px-1 sm:px-1.5 py-0.5 rounded font-medium hidden sm:flex">
+                                                <Users className="w-2.5 h-2.5 sm:w-3 sm:h-3 md:w-3.5 md:h-3.5" />
+                                                {place.playing.toLocaleString()}
+                                            </div>
+                                        )}
+                                        {rankingType !== "overall" && rankingType !== "hidden" && (
+                                            <div className="items-center gap-0.5 sm:gap-1 hidden sm:flex">
+                                                <Eye className="w-2.5 h-2.5 sm:w-3 sm:h-3 md:w-3.5 md:h-3.5" />
+                                                {(place.visit_count / 1000000).toFixed(1)}M+
+                                            </div>
+                                        )}
+                                        {rankingType !== "favorites" && (
+                                            <div className="items-center gap-1 hidden sm:flex">
+                                                <Heart className="w-3 h-3 md:w-3.5 md:h-3.5" />
+                                                {(place.favorite_count / 1000).toFixed(1)}K+
                                             </div>
                                         )}
                                     </div>
