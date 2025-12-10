@@ -71,6 +71,13 @@ export default function Home() {
                 <div className="absolute inset-0 z-0">
                     <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-purple-600/20 rounded-full blur-[120px] opacity-30 mix-blend-screen animate-pulse"></div>
                     <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-yellow-600/10 rounded-full blur-[120px] opacity-30 mix-blend-screen animate-pulse delay-1000"></div>
+                    
+                    {/* Shooting Stars */}
+                    <div className="shooting-star" style={{ top: '10%', left: '20%', animationDelay: '0s' }}></div>
+                    <div className="shooting-star" style={{ top: '25%', left: '70%', animationDelay: '2s' }}></div>
+                    <div className="shooting-star" style={{ top: '40%', left: '10%', animationDelay: '5s' }}></div>
+                    <div className="shooting-star" style={{ top: '5%', left: '50%', animationDelay: '7s' }}></div>
+                    <div className="shooting-star" style={{ top: '30%', left: '85%', animationDelay: '10s' }}></div>
                 </div>
 
                 <div className="relative z-10 w-full max-w-4xl mx-auto px-6 text-center">
