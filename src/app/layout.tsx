@@ -44,6 +44,10 @@ export const metadata: Metadata = {
         index: true,
         follow: true,
     },
+    icons: {
+        icon: "/images/logo/logo_icon_transparent.png",
+        apple: "/images/logo/logo_icon_transparent.png",
+    },
     alternates: {
         canonical: BASE_URL,
     },

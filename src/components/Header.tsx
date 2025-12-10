@@ -76,8 +76,12 @@ export default function Header() {
                 <div className="flex items-center justify-between h-16">
                     {/* Logo */}
                     <Link href="/" className="flex items-center gap-2 group">
-                        <div className="relative flex items-center justify-center w-8 h-8 rounded-lg bg-yellow-500/10 text-yellow-500">
-                            <Star className="w-5 h-5 fill-yellow-500" />
+                        <div className="relative w-8 h-8">
+                            <img
+                                src="/images/logo/logo_icon_transparent.png"
+                                alt="Logo"
+                                className="w-full h-full object-contain"
+                            />
                         </div>
                         <span className="text-xl font-bold text-white tracking-tight group-hover:text-yellow-400 transition-colors">
                             STAR REPO
