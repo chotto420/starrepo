@@ -68,31 +68,21 @@ export default function CreatorModal({ isOpen, onClose }: CreatorModalProps) {
                     </p>
 
                     {/* Members Grid */}
-                    <div className="grid grid-cols-5 gap-3 mb-8">
+                    <div className="grid grid-cols-3 gap-4 mb-8">
                         <Member
-                            name="赤ぺに"
+                            name="Katsuwo"
                             image="/images/creators/member_katsuwo.png"
                             color="bg-red-500/10 text-red-400"
                         />
                         <Member
-                            name="青ぺに"
+                            name="Daisuke"
                             image="/images/creators/member_daisuke.png"
                             color="bg-blue-500/10 text-blue-400"
                         />
                         <Member
-                            name="黄ぺに"
+                            name="Ko-ta"
                             image="/images/creators/member_kota.png"
                             color="bg-yellow-500/10 text-yellow-400"
-                        />
-                        <Member
-                            name="オレンジぺに"
-                            image="/images/creators/mascot_orange.png"
-                            color="bg-orange-500/10 text-orange-400"
-                        />
-                        <Member
-                            name="ピンクぺに"
-                            image="/images/creators/mascot_pink.png"
-                            color="bg-pink-500/10 text-pink-400"
                         />
                     </div>
 

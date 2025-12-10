@@ -8,6 +8,7 @@ import { Search, Plus, Sparkles, Trophy } from "lucide-react";
 import PlaceList from "@/components/PlaceList";
 import { showToast } from "@/components/ToastContainer";
 import CreatorModal from "@/components/CreatorModal"; // Added Modal
+import RollingMascot from "@/components/RollingMascot"; // Added Rolling Mascot
 
 export default function Home() {
     const [placeId, setPlaceId] = useState("");
@@ -72,47 +73,8 @@ export default function Home() {
                     <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-purple-600/20 rounded-full blur-[120px] opacity-30 mix-blend-screen animate-pulse"></div>
                     <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-yellow-600/10 rounded-full blur-[120px] opacity-30 mix-blend-screen animate-pulse delay-1000"></div>
 
-                    {/* Rolling Mascots */}
-                    <Image
-                        src="/images/creators/member_katsuwo.png"
-                        alt=""
-                        width={48}
-                        height={48}
-                        className="rolling-mascot"
-                        style={{ top: '15%', animationDelay: '0s' }}
-                    />
-                    <Image
-                        src="/images/creators/member_daisuke.png"
-                        alt=""
-                        width={48}
-                        height={48}
-                        className="rolling-mascot"
-                        style={{ top: '45%', animationDelay: '4s' }}
-                    />
-                    <Image
-                        src="/images/creators/member_kota.png"
-                        alt=""
-                        width={48}
-                        height={48}
-                        className="rolling-mascot"
-                        style={{ top: '75%', animationDelay: '8s' }}
-                    />
-                    <Image
-                        src="/images/creators/mascot_orange.png"
-                        alt=""
-                        width={48}
-                        height={48}
-                        className="rolling-mascot"
-                        style={{ top: '30%', animationDelay: '12s' }}
-                    />
-                    <Image
-                        src="/images/creators/mascot_pink.png"
-                        alt=""
-                        width={48}
-                        height={48}
-                        className="rolling-mascot"
-                        style={{ top: '60%', animationDelay: '16s' }}
-                    />
+                    {/* Rolling Mascot (random, rare appearance) */}
+                    <RollingMascot />
                 </div>
 
                 <div className="relative z-10 w-full max-w-4xl mx-auto px-6 text-center">
