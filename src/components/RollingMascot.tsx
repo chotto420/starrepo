@@ -22,11 +22,11 @@ export default function RollingMascot() {
         key: number;
         isBursting: boolean;
         burstPosition: { left: number } | null;
+        burstRotation: number | null;
     } | null>(null);
 
     const lastMascotRef = useRef<string | null>(null);
     const burstTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-    const imageRef = useRef<HTMLImageElement | null>(null);
 
     const handleClick = (e: React.MouseEvent<HTMLImageElement>) => {
         if (mascot && !mascot.isBursting) {
@@ -39,11 +39,27 @@ export default function RollingMascot() {
                 ? rect.left - containerRect.left
                 : rect.left;
 
-            // Trigger burst animation with frozen position
+            // Get the current rotation from computed style
+            const computedStyle = window.getComputedStyle(e.currentTarget);
+            const transform = computedStyle.transform;
+            let currentRotation = 0;
+
+            if (transform && transform !== 'none') {
+                // Parse the matrix to get rotation angle
+                const values = transform.split('(')[1]?.split(')')[0]?.split(',');
+                if (values && values.length >= 2) {
+                    const a = parseFloat(values[0]);
+                    const b = parseFloat(values[1]);
+                    currentRotation = Math.round(Math.atan2(b, a) * (180 / Math.PI));
+                }
+            }
+
+            // Trigger burst animation with frozen position and rotation
             setMascot(prev => prev ? {
                 ...prev,
                 isBursting: true,
-                burstPosition: { left: leftPosition }
+                burstPosition: { left: leftPosition },
+                burstRotation: currentRotation
             } : null);
 
             // Remove mascot after burst animation completes (400ms)
@@ -85,6 +101,7 @@ export default function RollingMascot() {
                 key: Date.now(),
                 isBursting: false,
                 burstPosition: null,
+                burstRotation: null,
             });
 
             // Clear mascot after animation completes (12 seconds)
@@ -110,18 +127,17 @@ export default function RollingMascot() {
 
     if (!mascot) return null;
 
-    // When bursting, use fixed position instead of animation
+    // When bursting, use fixed position and rotation instead of animation
     const burstStyle = mascot.isBursting && mascot.burstPosition ? {
         top: `${mascot.top}%`,
         left: `${mascot.burstPosition.left}px`,
-        animation: 'none', // Stop the roll animation
+        transform: `rotate(${mascot.burstRotation || 0}deg)`,
     } : {
         top: `${mascot.top}%`,
     };
 
     return (
         <Image
-            ref={imageRef}
             key={mascot.key}
             src={mascot.src}
             alt=""
