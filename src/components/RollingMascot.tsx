@@ -21,20 +21,35 @@ export default function RollingMascot() {
         top: number;
         key: number;
         isBursting: boolean;
+        burstPosition: { left: number } | null;
     } | null>(null);
 
     const lastMascotRef = useRef<string | null>(null);
     const burstTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const imageRef = useRef<HTMLImageElement | null>(null);
 
-    const handleClick = () => {
+    const handleClick = (e: React.MouseEvent<HTMLImageElement>) => {
         if (mascot && !mascot.isBursting) {
-            // Trigger burst animation
-            setMascot(prev => prev ? { ...prev, isBursting: true } : null);
+            // Get the current position of the element
+            const rect = e.currentTarget.getBoundingClientRect();
+            const containerRect = e.currentTarget.parentElement?.getBoundingClientRect();
 
-            // Remove mascot after burst animation completes (300ms)
+            // Calculate the left position relative to the container
+            const leftPosition = containerRect
+                ? rect.left - containerRect.left
+                : rect.left;
+
+            // Trigger burst animation with frozen position
+            setMascot(prev => prev ? {
+                ...prev,
+                isBursting: true,
+                burstPosition: { left: leftPosition }
+            } : null);
+
+            // Remove mascot after burst animation completes (400ms)
             burstTimeoutRef.current = setTimeout(() => {
                 setMascot(null);
-            }, 300);
+            }, 400);
         }
     };
 
@@ -69,6 +84,7 @@ export default function RollingMascot() {
                 top: randomTop,
                 key: Date.now(),
                 isBursting: false,
+                burstPosition: null,
             });
 
             // Clear mascot after animation completes (12 seconds)
@@ -94,15 +110,25 @@ export default function RollingMascot() {
 
     if (!mascot) return null;
 
+    // When bursting, use fixed position instead of animation
+    const burstStyle = mascot.isBursting && mascot.burstPosition ? {
+        top: `${mascot.top}%`,
+        left: `${mascot.burstPosition.left}px`,
+        animation: 'none', // Stop the roll animation
+    } : {
+        top: `${mascot.top}%`,
+    };
+
     return (
         <Image
+            ref={imageRef}
             key={mascot.key}
             src={mascot.src}
             alt=""
             width={48}
             height={48}
             className={`rolling-mascot ${mascot.isBursting ? 'mascot-burst' : ''}`}
-            style={{ top: `${mascot.top}%` }}
+            style={burstStyle}
             onClick={handleClick}
         />
     );
