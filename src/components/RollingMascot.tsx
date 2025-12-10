@@ -1,11 +1,13 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 
 const MASCOTS = [
-    "/images/creators/member_katsuwo.png",
-    "/images/creators/member_daisuke.png",
-    "/images/creators/member_kota.png",
+    "/images/creators/member_katsuwo.png",    // Red
+    "/images/creators/member_daisuke.png",    // Blue
+    "/images/creators/member_kota.png",       // Yellow
+    "/images/creators/mascot_orange.png",     // Orange
+    "/images/creators/mascot_pink.png",       // Pink
 ];
 
 export default function RollingMascot() {
@@ -15,6 +17,8 @@ export default function RollingMascot() {
         key: number;
     } | null>(null);
 
+    const lastMascotRef = useRef<string | null>(null);
+
     useEffect(() => {
         // Initial delay before first mascot (10-20 seconds after page load)
         const initialDelay = 10000 + Math.random() * 10000;
@@ -22,8 +26,14 @@ export default function RollingMascot() {
         let timeoutId: NodeJS.Timeout;
 
         const spawnMascot = () => {
-            // Random mascot
-            const randomSrc = MASCOTS[Math.floor(Math.random() * MASCOTS.length)];
+            // Pick a random mascot that's different from the last one
+            let availableMascots = MASCOTS.filter(m => m !== lastMascotRef.current);
+            if (availableMascots.length === 0) {
+                availableMascots = MASCOTS; // Fallback if filter removes all
+            }
+            const randomSrc = availableMascots[Math.floor(Math.random() * availableMascots.length)];
+            lastMascotRef.current = randomSrc;
+
             // Random Y position (10% - 70% from top)
             const randomTop = 10 + Math.random() * 60;
 
