@@ -3,13 +3,16 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image"; // Added Image
 import { Search, Plus, Sparkles, Trophy } from "lucide-react";
 import PlaceList from "@/components/PlaceList";
 import { showToast } from "@/components/ToastContainer";
+import CreatorModal from "@/components/CreatorModal"; // Added Modal
 
 export default function Home() {
     const [placeId, setPlaceId] = useState("");
     const [loading, setLoading] = useState(false);
+    const [isCreatorModalOpen, setIsCreatorModalOpen] = useState(false); // Added state
     const router = useRouter();
 
     const handleSearch = async (e: React.FormEvent) => {
@@ -72,6 +75,30 @@ export default function Home() {
 
                 <div className="relative z-10 w-full max-w-4xl mx-auto px-6 text-center">
                     <div className="animate-fade-in-up space-y-4 sm:space-y-8">
+                        {/* Easter Egg: Above Tagline */}
+                        <div className="flex justify-center py-2">
+                            <button
+                                onClick={() => setIsCreatorModalOpen(true)}
+                                className="group relative cursor-pointer hover:scale-105 transition-transform"
+                                aria-label="Supporters"
+                            >
+                                <div className="relative w-32 h-16 sm:w-40 sm:h-20">
+                                    <Image
+                                        src="/images/creators/pixel_members_transparent.png"
+                                        alt="Supporters"
+                                        fill
+                                        className="object-contain animate-bounce-slow"
+                                        style={{ imageRendering: 'pixelated' }}
+                                    />
+                                    {/* Speech Bubble on Hover */}
+                                    <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-white text-black text-[10px] font-bold px-2 py-1 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none shadow-lg z-50">
+                                        Produced by OssansRob
+                                        <div className="absolute bottom-[-4px] left-1/2 -translate-x-1/2 w-2 h-2 bg-white rotate-45"></div>
+                                    </div>
+                                </div>
+                            </button>
+                        </div>
+
                         {/* Tagline */}
                         <div className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full bg-white/5 border border-white/10 backdrop-blur-sm">
                             <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-400" />
@@ -91,7 +118,8 @@ export default function Home() {
                         </p>
 
                         {/* Unified Search Bar */}
-                        <div className="max-w-xl mx-auto mt-6 sm:mt-10 px-4 sm:px-0">
+                        <div className="max-w-xl mx-auto mt-6 sm:mt-10 px-4 sm:px-0 relative">
+
                             <form onSubmit={handleSearch} className="relative group">
                                 <div className="absolute -inset-0.5 bg-gradient-to-r from-yellow-500 to-orange-600 rounded-xl sm:rounded-2xl opacity-30 group-hover:opacity-100 transition duration-500 blur"></div>
                                 <div className="relative flex items-center bg-[#151921] rounded-xl sm:rounded-2xl border border-white/10 shadow-2xl overflow-hidden">
@@ -148,6 +176,8 @@ export default function Home() {
                 </div>
                 <PlaceList />
             </section>
+
+            <CreatorModal isOpen={isCreatorModalOpen} onClose={() => setIsCreatorModalOpen(false)} />
         </main>
     );
 }
