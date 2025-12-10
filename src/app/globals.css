@@ -191,8 +191,32 @@ body {
     width: 48px;
     height: 48px;
     animation: roll-across 12s linear forwards;
-    pointer-events: none;
+    pointer-events: auto;
     z-index: 1;
+    cursor: pointer;
+}
+
+/* Burst/Pop animation when clicked */
+@keyframes burst {
+    0% {
+        transform: scale(1);
+        opacity: 1;
+    }
+
+    50% {
+        transform: scale(1.5);
+        opacity: 0.8;
+    }
+
+    100% {
+        transform: scale(2);
+        opacity: 0;
+    }
+}
+
+.mascot-burst {
+    animation: burst 0.3s ease-out forwards !important;
+    pointer-events: none;
 }
 
 /* Bounce slow animation for Easter egg */
