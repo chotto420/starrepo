@@ -190,7 +190,7 @@ body {
     position: absolute;
     width: 48px;
     height: 48px;
-    animation: roll-across 12s linear infinite;
+    animation: roll-across 12s linear forwards;
     pointer-events: none;
     z-index: 1;
 }
