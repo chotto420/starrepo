@@ -10,24 +10,34 @@ import { Edit2, Shield, Trash2, AlertTriangle } from "lucide-react";
 type ProfileHeaderProps = {
     userEmail: string;
     isAdmin?: boolean;
+    initialProfile?: {
+        username: string | null;
+        avatar_url: string | null;
+        bio: string | null;
+    } | null;
 };
 
-export default function ProfileHeader({ userEmail, isAdmin }: ProfileHeaderProps) {
+export default function ProfileHeader({ userEmail, isAdmin, initialProfile }: ProfileHeaderProps) {
     const router = useRouter();
     const [profile, setProfile] = useState<{
         username: string | null;
         avatar_url: string | null;
         bio: string | null;
-    } | null>(null);
+    } | null>(initialProfile || null);
     const [showEditModal, setShowEditModal] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [deleteConfirmText, setDeleteConfirmText] = useState("");
     const [isDeleting, setIsDeleting] = useState(false);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(!initialProfile);
 
     useEffect(() => {
+        // initialProfileが渡されている場合はAPI呼び出しをスキップ
+        if (initialProfile) {
+            setLoading(false);
+            return;
+        }
         fetchProfile();
-    }, []);
+    }, [initialProfile]);
 
     const fetchProfile = async () => {
         try {

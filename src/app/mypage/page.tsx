@@ -82,14 +82,14 @@ export default async function MyPage() {
         redirect("/login");
     }
 
-    // Check profile
-    const { data: profile } = await supabase.from("profiles").select("*").eq("user_id", user.id).single();
-
-    // Fetch reviews and mylist in parallel for better performance
-    const [reviews, mylist] = await Promise.all([
+    // Fetch profile, reviews and mylist in parallel for better performance
+    const [profileResult, reviews, mylist] = await Promise.all([
+        supabase.from("profiles").select("*").eq("user_id", user.id).single(),
         getUserReviews(user.id),
         getUserMylist(user.id)
     ]);
+
+    const profile = profileResult.data;
 
     return (
         <main className="min-h-screen bg-slate-900 text-white pb-20">
@@ -98,7 +98,15 @@ export default async function MyPage() {
             <Link href="/" className="max-w-7xl mx-auto px-6 pt-4 text-sm text-slate-400 hover:text-white inline-block">
                 ← ホームに戻る
             </Link>
-            <ProfileHeader userEmail={user.email || ""} isAdmin={profile?.is_admin === true} />
+            <ProfileHeader
+                userEmail={user.email || ""}
+                isAdmin={profile?.is_admin === true}
+                initialProfile={profile ? {
+                    username: profile.username,
+                    avatar_url: profile.avatar_url,
+                    bio: profile.bio
+                } : null}
+            />
 
             {/* Content */}
             <div className="max-w-7xl mx-auto px-6 py-8">

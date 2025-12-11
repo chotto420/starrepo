@@ -86,15 +86,32 @@ export default function RankingPage() {
             }
 
             const placeIds = placeData.map((p: Place) => p.place_id);
-            const { data: allReviews } = await supabase
-                .from("reviews")
-                .select("place_id, rating")
-                .in("place_id", placeIds);
 
-            const { data: mylistData } = await supabase
-                .from("user_mylist")
-                .select("place_id")
-                .in("place_id", placeIds);
+            // Fetch yesterday's date for trending calculation
+            const yesterday = new Date();
+            yesterday.setDate(yesterday.getDate() - 1);
+            const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+            // Fetch reviews, mylist, and history data in parallel
+            const [reviewsResult, mylistResult, historyResult] = await Promise.all([
+                supabase
+                    .from("reviews")
+                    .select("place_id, rating")
+                    .in("place_id", placeIds),
+                supabase
+                    .from("user_mylist")
+                    .select("place_id")
+                    .in("place_id", placeIds),
+                supabase
+                    .from("place_stats_history")
+                    .select("place_id, visit_count")
+                    .eq("recorded_at", yesterdayStr)
+                    .in("place_id", placeIds)
+            ]);
+
+            const allReviews = reviewsResult.data;
+            const mylistData = mylistResult.data;
+            const historyData = historyResult.data;
 
             const reviewsMap = new Map<number, { count: number; sum: number }>();
             if (allReviews) {
@@ -113,17 +130,6 @@ export default function RankingPage() {
                     mylistMap.set(m.place_id, (mylistMap.get(m.place_id) || 0) + 1);
                 }
             }
-
-            // Fetch yesterday's stats for trending calculation
-            const yesterday = new Date();
-            yesterday.setDate(yesterday.getDate() - 1);
-            const yesterdayStr = yesterday.toISOString().split('T')[0];
-
-            const { data: historyData } = await supabase
-                .from("place_stats_history")
-                .select("place_id, visit_count")
-                .eq("recorded_at", yesterdayStr)
-                .in("place_id", placeIds);
 
             const historyMap = new Map<number, number>();
             if (historyData) {
