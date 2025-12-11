@@ -121,14 +121,14 @@ export default function RankingPage() {
 
             const { data: historyData } = await supabase
                 .from("place_stats_history")
-                .select("place_id, favorite_count")
+                .select("place_id, visit_count")
                 .eq("recorded_at", yesterdayStr)
                 .in("place_id", placeIds);
 
             const historyMap = new Map<number, number>();
             if (historyData) {
                 for (const h of historyData) {
-                    historyMap.set(h.place_id, h.favorite_count || 0);
+                    historyMap.set(h.place_id, h.visit_count || 0);
                 }
             }
 
@@ -137,11 +137,11 @@ export default function RankingPage() {
                 const count = stats?.count || 0;
                 const avg = count > 0 ? stats!.sum / count : 0;
 
-                // Calculate trend score (favorite increase from yesterday)
-                const yesterdayFav = historyMap.get(p.place_id) || 0;
-                const currentFav = p.favorite_count || 0;
-                const trendScore = yesterdayFav > 0
-                    ? ((currentFav - yesterdayFav) / yesterdayFav) * 100
+                // Calculate trend score (visit increase from yesterday)
+                const yesterdayVisits = historyMap.get(p.place_id) || 0;
+                const currentVisits = p.visit_count || 0;
+                const trendScore = yesterdayVisits > 0
+                    ? ((currentVisits - yesterdayVisits) / yesterdayVisits) * 100
                     : 0;
 
                 return {
