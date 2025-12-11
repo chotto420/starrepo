@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useState, useRef, useCallback } from "react";
-import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
+import Image from "next/image";
+import { createClient } from "@/lib/supabase/client";
 import { Star, User, Users, Activity, Eye, Heart } from "lucide-react";
 
 type Place = {
-    place_id: string;
+    place_id: number;
     name: string;
     description: string;
     thumbnail_url: string;
@@ -17,6 +18,7 @@ type Place = {
     updated_at: string;
     genre: string | null;
     creator_name: string;
+    review_count: number;
 };
 
 export default function PlaceList() {
@@ -28,7 +30,7 @@ export default function PlaceList() {
 
     // Infinite Scroll Observer
     const lastPlaceElementRef = useCallback(
-        (node: HTMLDivElement) => {
+        (node: HTMLAnchorElement | null) => {
             if (loading) return;
             if (observer.current) observer.current.disconnect();
             observer.current = new IntersectionObserver((entries) => {
@@ -123,11 +125,12 @@ export default function PlaceList() {
                         {/* Thumbnail Container */}
                         <div className="relative aspect-video overflow-hidden">
                             {place.thumbnail_url ? (
-                                <img
+                                <Image
                                     src={place.thumbnail_url}
                                     alt={place.name}
-                                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                                    loading="lazy"
+                                    fill
+                                    className="object-cover transition-transform duration-500 group-hover:scale-105"
+                                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
                                 />
                             ) : (
                                 <div className="w-full h-full bg-slate-700 flex items-center justify-center text-4xl">

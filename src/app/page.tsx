@@ -95,6 +95,7 @@ export default function Home() {
                                         fill
                                         className="object-contain animate-bounce-slow"
                                         style={{ imageRendering: 'pixelated' }}
+                                        sizes="(max-width: 640px) 128px, 160px"
                                     />
                                     {/* Speech Bubble on Hover */}
                                     <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-white text-black text-[10px] font-bold px-2 py-1 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none shadow-lg z-50">

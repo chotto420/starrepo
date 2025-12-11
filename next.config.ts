@@ -19,6 +19,14 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "**.roblox.com",
       },
+      {
+        protocol: "https",
+        hostname: "**.supabase.co",
+      },
+      {
+        protocol: "https",
+        hostname: "dm2302files.roblox.com",
+      }
     ],
   },
 };
