@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { isAdmin } from "@/lib/admin";
 import { getRobloxGameData, RobloxGameData } from "@/lib/roblox";
 
@@ -22,6 +22,7 @@ async function fetchWithRetry(placeId: number, maxRetries: number = 2): Promise<
 }
 
 export async function POST(req: NextRequest) {
+    const supabase = createAdminClient();
     const admin = await isAdmin();
     if (!admin) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -31,7 +32,9 @@ export async function POST(req: NextRequest) {
     const { data: places, error: fetchError } = await supabase
         .from("places")
         .select("place_id")
-        .order("last_synced_at", { ascending: true, nullsFirst: true }); // Oldest synced first
+        .select("place_id")
+        .order("last_synced_at", { ascending: true, nullsFirst: true }) // Oldest synced first
+        .limit(50); // Process 50 items per request to avoid Vercel timeout
 
     if (fetchError) {
         console.error("Fetch places error:", fetchError);
