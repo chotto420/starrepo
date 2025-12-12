@@ -1,15 +1,27 @@
 // -----------------------------------------------------------------------------
-//  fetch-places.ts ── DB に登録済みの Place を週次同期（アイコン＋サムネ対応）
+//  fetch-places.ts ── DB に登録済みの Place を日次同期（アイコン＋サムネ対応）
 // -----------------------------------------------------------------------------
 import dotenv from "dotenv";
 import { createClient } from "@supabase/supabase-js";
 
 dotenv.config({ path: ".env.local" });
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+// Service Role Key を優先使用（RLS バイパス）、なければ Anon Key
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+
+if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  console.log("✅ Using Service Role Key (RLS bypassed)");
+} else {
+  console.warn("⚠️ Service Role Key not found, using Anon Key (RLS applies)");
+}
+
+const supabase = createClient(supabaseUrl, supabaseKey, {
+  auth: {
+    autoRefreshToken: false,
+    persistSession: false,
+  },
+});
 
 // -----------------------------------------------------------------------------
 // 型定義
@@ -74,7 +86,30 @@ async function fetchRetry(url: string, retry = 3) {
 }
 
 // -----------------------------------------------------------------------------
-// Step-0  DB から対象 Place 一覧をロード（既存画像 URL も取得）
+// Step-0a  日次スナップショット作成（place_stats_history テーブルへ一括コピー）
+// -----------------------------------------------------------------------------
+async function takeDailySnapshot(): Promise<boolean> {
+  const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+
+  try {
+    // RPC関数を使用してスナップショットを取得
+    const { error } = await supabase.rpc('take_daily_snapshot', { snapshot_date: today });
+
+    if (error) {
+      console.warn(`⚠️ Snapshot RPC error: ${error.message}`);
+      return false;
+    }
+
+    console.log(`📸 Daily snapshot taken for ${today}`);
+    return true;
+  } catch (err) {
+    console.warn(`⚠️ Snapshot failed: ${err}`);
+    return false;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Step-0b  DB から対象 Place 一覧をロード（既存画像 URL も取得）
 // -----------------------------------------------------------------------------
 async function loadPlaceRows(): Promise<PlaceRow[]> {
   const { data, error } = await supabase
@@ -116,8 +151,8 @@ async function fetchIcons(uIds: number[]) {
     const chunk = uIds.slice(i, i + CHUNK);
     const r = await fetchRetry(
       "https://thumbnails.roblox.com/v1/games/icons" +
-        `?universeIds=${chunk.join(",")}` +
-        "&size=512x512&format=Png&isCircular=false"
+      `?universeIds=${chunk.join(",")}` +
+      "&size=512x512&format=Png&isCircular=false"
     );
     if (!r.ok) {
       console.warn(`⚠️ icon: ${r.status}`);
@@ -142,8 +177,8 @@ async function fetchThumbs(uIds: number[]) {
     const chunk = uIds.slice(i, i + CHUNK);
     const r = await fetchRetry(
       "https://thumbnails.roblox.com/v1/games/multiget/thumbnails" +
-        `?universeIds=${chunk.join(",")}` +
-        "&countPerUniverse=1&size=768x432&format=Png"
+      `?universeIds=${chunk.join(",")}` +
+      "&countPerUniverse=1&size=768x432&format=Png"
     );
     if (!r.ok) {
       console.warn(`⚠️ thumb: ${r.status}`);
@@ -189,12 +224,19 @@ async function fetchVotes(uIds: number[]) {
 // Step-3  Main 処理
 // -----------------------------------------------------------------------------
 async function run() {
+  console.log("🚀 Starting Roblox data sync...");
+
+  /* Step A: 日次スナップショット取得（統計履歴用） */
+  const snapshotOk = await takeDailySnapshot();
+  console.log(snapshotOk ? "📸 Snapshot completed" : "⚠️ Snapshot skipped (may already exist for today)");
+
   /* DB から Place 一覧 */
   const rows = await loadPlaceRows();
   if (!rows.length) {
     console.log("⚠️ places テーブルが空です");
     return;
   }
+  console.log(`📋 Found ${rows.length} places to sync`);
 
   /* 初期マップ（universe_id が入っているものはキャッシュ扱い）*/
   const place2UniInit: PlaceToUniverse = Object.fromEntries(
@@ -303,4 +345,4 @@ async function run() {
 run().catch(console.error);
 
 // ユーティリティとしてスクリプト全体を module として扱う
-export {};
+export { };

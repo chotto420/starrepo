@@ -7,14 +7,9 @@ on:
   # ❶ 手動実行（Actions → Run workflow）
   workflow_dispatch:
 
-  # ❷ main ブランチへ push 時にも動かしたい場合はコメント解除
-  # push:
-  #   branches: [ main ]
-
-  # ❸ 定期実行したい場合はコメント解除
-  #    例: 毎週月曜 05:00 JST（＝日曜 20:00 UTC）
-  # schedule:
-  #   - cron: '0 20 * * SUN'
+  # ❷ 毎日定期実行: 15:00 UTC = 00:00 JST（日本時間0時）
+  schedule:
+    - cron: '0 15 * * *'
 
 # ───────────────────────────────
 #  ジョブ定義
@@ -22,7 +17,7 @@ on:
 jobs:
   sync:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
 
     steps:
       # 1. ソース取得
@@ -47,4 +42,6 @@ jobs:
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: node dist/fetch-places.js
+
