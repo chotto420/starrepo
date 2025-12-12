@@ -249,3 +249,24 @@ body {
 .animate-bounce-slow {
     animation: bounce-slow 2s ease-in-out infinite;
 }
+
+/* Skeleton Shimmer Animation */
+@keyframes shimmer {
+    0% {
+        background-position: -200% 0;
+    }
+    100% {
+        background-position: 200% 0;
+    }
+}
+
+.animate-shimmer {
+    background: linear-gradient(
+        90deg,
+        rgba(51, 65, 85, 0.6) 0%,
+        rgba(71, 85, 105, 0.8) 50%,
+        rgba(51, 65, 85, 0.6) 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.5s ease-in-out infinite;
+}

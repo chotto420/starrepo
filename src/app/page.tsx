@@ -9,6 +9,7 @@ import PlaceList from "@/components/PlaceList";
 import { showToast } from "@/components/ToastContainer";
 import CreatorModal from "@/components/CreatorModal"; // Added Modal
 import RollingMascot from "@/components/RollingMascot"; // Added Rolling Mascot
+import RandomGameButton from "@/components/RandomGameButton";
 
 export default function Home() {
     const [placeId, setPlaceId] = useState("");
@@ -160,6 +161,25 @@ export default function Home() {
                             </p>
                         </div>
                     </div>
+                </div>
+
+                {/* Quick Links */}
+                <div className="relative z-10 flex flex-wrap justify-center gap-3 mt-8 px-4">
+                    <Link
+                        href="/new"
+                        className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-yellow-500/20 to-amber-500/20 border border-yellow-500/30 rounded-full text-sm font-medium text-yellow-400 hover:from-yellow-500/30 hover:to-amber-500/30 transition-all"
+                    >
+                        <Sparkles className="w-4 h-4" />
+                        新着ゲーム
+                    </Link>
+                    <RandomGameButton />
+                    <Link
+                        href="/ranking"
+                        className="flex items-center gap-2 px-4 py-2 bg-slate-800/50 border border-slate-700/50 rounded-full text-sm font-medium text-slate-300 hover:bg-slate-700/50 hover:text-white transition-all"
+                    >
+                        <Trophy className="w-4 h-4" />
+                        ランキング
+                    </Link>
                 </div>
             </section>
 

@@ -21,13 +21,23 @@ export async function getRobloxGameData(placeId: number): Promise<RobloxGameData
     try {
         // 1. Get Universe ID
         const uRes = await fetch(`https://apis.roblox.com/universes/v1/places/${placeId}/universe`);
-        if (!uRes.ok) return null;
+        if (!uRes.ok) {
+            console.error(`[Roblox API] Universe fetch failed for ${placeId}: ${uRes.status} ${uRes.statusText}`);
+            return null;
+        }
         const { universeId } = await uRes.json();
 
         // 2. Get Game Info
         const gRes = await fetch(`https://games.roblox.com/v1/games?universeIds=${universeId}`);
-        if (!gRes.ok) return null;
+        if (!gRes.ok) {
+            console.error(`[Roblox API] Game fetch failed for universe ${universeId}: ${gRes.status} ${gRes.statusText}`);
+            return null;
+        }
         const gameData = (await gRes.json()).data[0];
+        if (!gameData) {
+            console.error(`[Roblox API] No game data found for universe ${universeId}`);
+            return null;
+        }
 
         // 3. Get Votes
         const vRes = await fetch(`https://games.roblox.com/v1/games/votes?universeIds=${universeId}`);
@@ -60,7 +70,7 @@ export async function getRobloxGameData(placeId: number): Promise<RobloxGameData
             genre: gameData.genre, // Use the string genre directly
         };
     } catch (error) {
-        console.error("Failed to fetch Roblox data:", error);
+        console.error(`[Roblox API] Exception for placeId ${placeId}:`, error);
         return null;
     }
 }

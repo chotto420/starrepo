@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 import { Star, User, Users, Activity, Eye, Heart } from "lucide-react";
+import { PlaceCardSkeleton } from "./Skeleton";
 
 type Place = {
     place_id: number;
@@ -27,6 +28,7 @@ export default function PlaceList() {
     const [hasMore, setHasMore] = useState(true);
     const observer = useRef<IntersectionObserver | null>(null);
     const [loading, setLoading] = useState(false); // To prevent double fetch
+    const [initialLoading, setInitialLoading] = useState(true); // 初回ロード用
 
     // Infinite Scroll Observer
     const lastPlaceElementRef = useCallback(
@@ -95,6 +97,7 @@ export default function PlaceList() {
                 }
             }
             setLoading(false);
+            setInitialLoading(false); // 初回ロード完了
         };
 
         fetchPlaces();
@@ -110,6 +113,17 @@ export default function PlaceList() {
         }
         return num.toString();
     };
+
+    // 初回ロード中はスケルトングリッドを表示
+    if (initialLoading) {
+        return (
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6 pb-12">
+                {[...Array(8)].map((_, i) => (
+                    <PlaceCardSkeleton key={`initial-skeleton-${i}`} />
+                ))}
+            </div>
+        );
+    }
 
     return (
         <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6 pb-12">

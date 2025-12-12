@@ -99,6 +99,7 @@ export async function POST(req: NextRequest) {
             first_released_at: gameData.created,
             last_updated_at: gameData.updated,
             last_synced_at: new Date().toISOString(),
+            created_at: new Date().toISOString(), // 登録日時（更新時には変更されない）
         });
 
         if (error) {

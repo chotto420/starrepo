@@ -78,7 +78,7 @@ export default function EditReviewModal({
                             value={comment}
                             onChange={(e) => setComment(e.target.value)}
                             className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white focus:ring-2 focus:ring-yellow-500 outline-none min-h-[120px]"
-                            placeholder="レビューを入力してください！"
+                            placeholder="どんなところが楽しかった？気軽に書いてね✨"
                         />
                     </div>
 

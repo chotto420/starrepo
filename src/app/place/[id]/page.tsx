@@ -6,6 +6,7 @@ import ReviewForm from "@/components/ReviewForm";
 import CollapsibleDescription from "@/components/CollapsibleDescription";
 import MylistButton from "@/components/MylistButton";
 import ReviewsSection from "@/components/ReviewsSection"; // Import NEW component
+import ShareButtons from "@/components/ShareButtons";
 import Link from "next/link";
 import { ChevronLeft, Play, PenLine, Eye, Heart, Users, Gamepad2 } from "lucide-react";
 import Script from "next/script";
@@ -98,6 +99,7 @@ async function getPlace(id: number) {
     first_released_at: gameData.created,
     last_updated_at: gameData.updated,
     last_synced_at: new Date().toISOString(),
+    created_at: new Date().toISOString(),
   });
 
   if (error) {
@@ -309,6 +311,14 @@ export default async function PlacePage({ params }: { params: Promise<{ id: stri
 
           {/* Collapsible Description */}
           <CollapsibleDescription description={place.description} />
+
+          {/* Share Section - スタンドアロンのシェアセクション */}
+          <div className="bg-[#151921] rounded-xl p-4 border border-slate-800 mt-4">
+            <ShareButtons
+              title={place.name}
+              url={`https://starrepo.net/place/${place.place_id}`}
+            />
+          </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-8">
             {/* Left Column: Reviews List */}

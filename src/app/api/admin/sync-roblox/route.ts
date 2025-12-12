@@ -88,8 +88,8 @@ export async function POST(req: NextRequest) {
                 updated++;
             }
 
-            // Rate limit: wait 1000ms between requests to avoid Roblox API throttling
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            // Rate limit: wait 2000ms between requests to avoid Roblox API throttling
+            await new Promise(resolve => setTimeout(resolve, 2000));
         } catch (error) {
             failed++;
             errors.push({ placeId: place.place_id, error: String(error) });

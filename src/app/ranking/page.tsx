@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { getGenreName } from "@/lib/roblox";
 import Link from "next/link";
 import { Trophy, Users, Star, Gem, Heart, ChevronLeft, Eye, MessageCircle, List, TrendingUp, Sparkles, Medal } from "lucide-react";
+import { RankingListSkeleton } from "@/components/Skeleton";
 
 const supabase = createClient();
 
@@ -417,11 +418,7 @@ export default function RankingPage() {
             {/* Ranking List */}
             <div className="max-w-7xl mx-auto px-4 md:px-6 py-8">
                 {loading ? (
-                    <div className="space-y-4">
-                        {[...Array(5)].map((_, i) => (
-                            <div key={i} className="bg-[#151921] rounded-xl h-24 w-full animate-pulse border border-slate-800" />
-                        ))}
-                    </div>
+                    <RankingListSkeleton count={10} />
                 ) : (
                     <div className="space-y-3">
                         {sortedPlaces.slice(0, 50).map((place, index) => {
