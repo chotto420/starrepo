@@ -8,6 +8,7 @@ import MylistButton from "@/components/MylistButton";
 import ReviewsSection from "@/components/ReviewsSection"; // Import NEW component
 import Link from "next/link";
 import { ChevronLeft, Play, PenLine, Eye, Heart, Users, Gamepad2 } from "lucide-react";
+import Script from "next/script";
 
 // Force dynamic rendering to ensure fresh auth state
 export const dynamic = "force-dynamic";
@@ -192,106 +193,144 @@ export default async function PlacePage({ params }: { params: Promise<{ id: stri
   // ユーザーの既存レビューを取得
   const userReview = user ? await getUserReview(placeId, user.id) : null;
 
+  // レビュー統計計算
+  const reviewCount = reviews.length;
+  const averageRating = reviewCount > 0
+    ? reviews.reduce((sum: number, r: { rating: number }) => sum + r.rating, 0) / reviewCount
+    : 0;
+
+  // 構造化データ（JSON-LD）
+  const gameJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "VideoGame",
+    name: place.name,
+    description: place.description || `${place.name} - Robloxゲーム`,
+    image: place.thumbnail_url || undefined,
+    author: {
+      "@type": "Person",
+      name: place.creator_name
+    },
+    gamePlatform: "Roblox",
+    applicationCategory: "Game",
+    url: `https://starrepo.net/place/${placeId}`,
+    ...(reviewCount >= 1 && {
+      aggregateRating: {
+        "@type": "AggregateRating",
+        ratingValue: averageRating.toFixed(1),
+        bestRating: "5",
+        worstRating: "1",
+        ratingCount: reviewCount
+      }
+    })
+  };
+
   return (
-    <main className="min-h-screen bg-[#0B0E14] text-slate-200 p-4 sm:p-8 pb-20">
-      <div className="max-w-5xl mx-auto">
-        <Link href="/" className="inline-flex items-center text-sm text-slate-400 hover:text-white mb-6 transition-colors">
-          <ChevronLeft className="w-4 h-4 mr-1" />
-          ホームに戻る
-        </Link>
+    <>
+      <Script
+        id="game-jsonld"
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(gameJsonLd) }}
+      />
+      <main className="min-h-screen bg-[#0B0E14] text-slate-200 p-4 sm:p-8 pb-20">
+        <div className="max-w-5xl mx-auto">
+          <Link href="/" className="inline-flex items-center text-sm text-slate-400 hover:text-white mb-6 transition-colors">
+            <ChevronLeft className="w-4 h-4 mr-1" />
+            ホームに戻る
+          </Link>
 
-        {/* Game Header */}
-        <div className="bg-[#151921] rounded-2xl p-4 sm:p-6 border border-slate-800 mb-6 sm:mb-8 flex flex-col md:flex-row gap-4 sm:gap-8 shadow-xl shadow-black/20">
-          <div className="w-full md:w-2/5 shrink-0">
-            <div className="aspect-video bg-slate-800 rounded-xl overflow-hidden border border-slate-700/50 shadow-inner relative group">
-              {place.thumbnail_url ? (
-                <img src={place.thumbnail_url} alt={place.name} className="w-full h-full object-cover" />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-slate-600">
-                  <Gamepad2 className="w-12 h-12 opacity-50" />
-                </div>
-              )}
-              <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors"></div>
-            </div>
-          </div>
-
-          <div className="flex-1 flex flex-col justify-center">
-            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-1 sm:mb-2 leading-tight">{place.name}</h1>
-            <p className="text-slate-400 font-medium mb-3 sm:mb-4 flex items-center gap-2 text-sm sm:text-base">
-              <span className="text-slate-500">by</span>
-              <span className="text-slate-300 hover:text-white transition-colors cursor-pointer">{place.creator_name}</span>
-            </p>
-
-            <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-4 sm:mb-6 bg-[#0B0E14] p-2 sm:p-4 rounded-lg border border-slate-800/50">
-              <div className="text-center">
-                <div className="text-[10px] sm:text-xs text-slate-500 uppercase tracking-wider mb-0.5 sm:mb-1 flex items-center justify-center gap-0.5 sm:gap-1">
-                  <Eye className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> 訪問
-                </div>
-                <div className="text-sm sm:text-lg font-bold text-slate-200">{(place.visit_count / 1000000).toFixed(1)}M+</div>
-              </div>
-              <div className="text-center border-l border-slate-800">
-                <div className="text-[10px] sm:text-xs text-slate-500 uppercase tracking-wider mb-0.5 sm:mb-1 flex items-center justify-center gap-0.5 sm:gap-1">
-                  <Heart className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> いいね
-                </div>
-                <div className="text-sm sm:text-lg font-bold text-slate-200">{(place.favorite_count / 1000).toFixed(1)}K+</div>
-              </div>
-              <div className="text-center border-l border-slate-800">
-                <div className="text-[10px] sm:text-xs text-slate-500 uppercase tracking-wider mb-0.5 sm:mb-1 flex items-center justify-center gap-0.5 sm:gap-1">
-                  <Users className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> プレイ中
-                </div>
-                <div className="text-sm sm:text-lg font-bold text-green-400">{place.playing?.toLocaleString() || "-"}</div>
+          {/* Game Header */}
+          <div className="bg-[#151921] rounded-2xl p-4 sm:p-6 border border-slate-800 mb-6 sm:mb-8 flex flex-col md:flex-row gap-4 sm:gap-8 shadow-xl shadow-black/20">
+            <div className="w-full md:w-2/5 shrink-0">
+              <div className="aspect-video bg-slate-800 rounded-xl overflow-hidden border border-slate-700/50 shadow-inner relative group">
+                {place.thumbnail_url ? (
+                  <img src={place.thumbnail_url} alt={place.name} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-slate-600">
+                    <Gamepad2 className="w-12 h-12 opacity-50" />
+                  </div>
+                )}
+                <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors"></div>
               </div>
             </div>
 
-            <div className="flex flex-col gap-2 sm:gap-3">
-              <div className="flex gap-2 sm:gap-3">
+            <div className="flex-1 flex flex-col justify-center">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-1 sm:mb-2 leading-tight">{place.name}</h1>
+              <p className="text-slate-400 font-medium mb-3 sm:mb-4 flex items-center gap-2 text-sm sm:text-base">
+                <span className="text-slate-500">by</span>
+                <span className="text-slate-300 hover:text-white transition-colors cursor-pointer">{place.creator_name}</span>
+              </p>
+
+              <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-4 sm:mb-6 bg-[#0B0E14] p-2 sm:p-4 rounded-lg border border-slate-800/50">
+                <div className="text-center">
+                  <div className="text-[10px] sm:text-xs text-slate-500 uppercase tracking-wider mb-0.5 sm:mb-1 flex items-center justify-center gap-0.5 sm:gap-1">
+                    <Eye className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> 訪問
+                  </div>
+                  <div className="text-sm sm:text-lg font-bold text-slate-200">{(place.visit_count / 1000000).toFixed(1)}M+</div>
+                </div>
+                <div className="text-center border-l border-slate-800">
+                  <div className="text-[10px] sm:text-xs text-slate-500 uppercase tracking-wider mb-0.5 sm:mb-1 flex items-center justify-center gap-0.5 sm:gap-1">
+                    <Heart className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> いいね
+                  </div>
+                  <div className="text-sm sm:text-lg font-bold text-slate-200">{(place.favorite_count / 1000).toFixed(1)}K+</div>
+                </div>
+                <div className="text-center border-l border-slate-800">
+                  <div className="text-[10px] sm:text-xs text-slate-500 uppercase tracking-wider mb-0.5 sm:mb-1 flex items-center justify-center gap-0.5 sm:gap-1">
+                    <Users className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> プレイ中
+                  </div>
+                  <div className="text-sm sm:text-lg font-bold text-green-400">{place.playing?.toLocaleString() || "-"}</div>
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-2 sm:gap-3">
+                <div className="flex gap-2 sm:gap-3">
+                  <a
+                    href={`https://www.roblox.com/games/${place.place_id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 text-center bg-green-600 hover:bg-green-500 text-white font-bold py-2.5 px-3 sm:py-3 sm:px-6 rounded-xl transition-all shadow-lg shadow-green-900/20 transform hover:-translate-y-0.5 flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-base whitespace-nowrap"
+                  >
+                    <Play className="w-4 h-4 sm:w-5 sm:h-5 fill-current shrink-0" />
+                    プレイ
+                  </a>
+                  <MylistButton placeId={place.place_id} placeName={place.name} />
+                </div>
+
+                {/* Review Shortcut Button */}
                 <a
-                  href={`https://www.roblox.com/games/${place.place_id}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex-1 text-center bg-green-600 hover:bg-green-500 text-white font-bold py-2.5 px-3 sm:py-3 sm:px-6 rounded-xl transition-all shadow-lg shadow-green-900/20 transform hover:-translate-y-0.5 flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-base whitespace-nowrap"
+                  href="#review-form"
+                  className="w-full text-center py-2 px-3 sm:py-2.5 sm:px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl transition-colors text-xs sm:text-sm font-medium border border-slate-700 flex items-center justify-center gap-1.5 sm:gap-2"
                 >
-                  <Play className="w-4 h-4 sm:w-5 sm:h-5 fill-current shrink-0" />
-                  プレイ
+                  <PenLine className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  レビューを書く / 編集する
                 </a>
-                <MylistButton placeId={place.place_id} placeName={place.name} />
+              </div>
+            </div>
+          </div>
+
+          {/* Collapsible Description */}
+          <CollapsibleDescription description={place.description} />
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-8">
+            {/* Left Column: Reviews List */}
+            <div className="lg:col-span-2 space-y-6">
+              <div className="flex items-center justify-between">
+                <h2 className="text-2xl font-bold text-white border-l-4 border-yellow-500 pl-4">レビュー</h2>
+                {/* Count is now handled inside ReviewsSection or we can show total here */}
               </div>
 
-              {/* Review Shortcut Button */}
-              <a
-                href="#review-form"
-                className="w-full text-center py-2 px-3 sm:py-2.5 sm:px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl transition-colors text-xs sm:text-sm font-medium border border-slate-700 flex items-center justify-center gap-1.5 sm:gap-2"
-              >
-                <PenLine className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                レビューを書く / 編集する
-              </a>
+              {/* Replace manual mapping with ReviewsSection */}
+              <ReviewsSection initialReviews={reviews} currentUserId={user?.id} />
+            </div>
+
+            {/* Right Column: Review Form */}
+            <div className="lg:col-span-1" id="review-form">
+              <div className="sticky top-6">
+                <ReviewForm placeId={placeId} user={user} existingReview={userReview} />
+              </div>
             </div>
           </div>
         </div>
-
-        {/* Collapsible Description */}
-        <CollapsibleDescription description={place.description} />
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-8">
-          {/* Left Column: Reviews List */}
-          <div className="lg:col-span-2 space-y-6">
-            <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-bold text-white border-l-4 border-yellow-500 pl-4">レビュー</h2>
-              {/* Count is now handled inside ReviewsSection or we can show total here */}
-            </div>
-
-            {/* Replace manual mapping with ReviewsSection */}
-            <ReviewsSection initialReviews={reviews} currentUserId={user?.id} />
-          </div>
-
-          {/* Right Column: Review Form */}
-          <div className="lg:col-span-1" id="review-form">
-            <div className="sticky top-6">
-              <ReviewForm placeId={placeId} user={user} existingReview={userReview} />
-            </div>
-          </div>
-        </div>
-      </div>
-    </main>
+      </main>
+    </>
   );
 }

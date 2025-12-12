@@ -15,8 +15,14 @@ export const metadata: Metadata = {
         default: "StarRepo - Roblox ゲームレビューサイト",
         template: "%s | StarRepo",
     },
-    description: "面白いRobloxゲームをみんなで見つけよう。Place IDでゲームを登録してレビューを投稿できます。",
-    keywords: ["Roblox", "ロブロックス", "ゲームレビュー", "おすすめゲーム", "Roblox レビュー", "Roblox ランキング"],
+    description: "面白いRobloxゲームをみんなで見つけよう。Place IDでゲームを登録してレビューを投稿できます。人気ランキング、ジャンル別検索、ユーザーレビューで最高のRobloxゲームを発見。",
+    keywords: [
+        "Roblox", "ロブロックス", "ゲームレビュー", "おすすめゲーム",
+        "Roblox レビュー", "Roblox ランキング", "Roblox おすすめ",
+        "ロブロックス ゲーム おすすめ", "Roblox 人気ゲーム",
+        "ロブロックス レビュー", "Roblox 日本語", "Roblox 神ゲー",
+        "ロブロックス 面白いゲーム", "Roblox ゲーム 探し方"
+    ],
     authors: [{ name: "StarRepo" }],
     openGraph: {
         type: "website",
@@ -30,7 +36,7 @@ export const metadata: Metadata = {
                 url: "/og-image.png",
                 width: 1200,
                 height: 630,
-                alt: "StarRepo",
+                alt: "StarRepo - Roblox ゲームレビューサイト",
             },
         ],
     },
@@ -53,6 +59,25 @@ export const metadata: Metadata = {
     },
 };
 
+// 構造化データ（JSON-LD）
+const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: "StarRepo",
+    alternateName: "スターレポ",
+    url: BASE_URL,
+    description: "面白いRobloxゲームをみんなで見つけよう。Place IDでゲームを登録してレビューを投稿できます。",
+    inLanguage: "ja",
+    potentialAction: {
+        "@type": "SearchAction",
+        target: {
+            "@type": "EntryPoint",
+            urlTemplate: `${BASE_URL}/search?q={search_term_string}`
+        },
+        "query-input": "required name=search_term_string"
+    }
+};
+
 export default function RootLayout({
     children,
 }: Readonly<{
@@ -60,6 +85,12 @@ export default function RootLayout({
 }>) {
     return (
         <html lang="ja" suppressHydrationWarning>
+            <head>
+                <script
+                    type="application/ld+json"
+                    dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+                />
+            </head>
             <body className={inter.className} suppressHydrationWarning={true}>
                 <Header />
                 <ToastContainer />
