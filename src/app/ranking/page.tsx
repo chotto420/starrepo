@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { getGenreName } from "@/lib/roblox";
 import Link from "next/link";
-import { Trophy, Users, Star, Gem, Heart, ChevronLeft, Eye, MessageCircle, List, TrendingUp } from "lucide-react";
+import { Trophy, Users, Star, Gem, Heart, ChevronLeft, Eye, MessageCircle, List, TrendingUp, Sparkles, Medal } from "lucide-react";
 
 const supabase = createClient();
 
@@ -58,76 +58,164 @@ export default function RankingPage() {
         async function fetchRanking() {
             setLoading(true);
 
+            // Place ids for specific fetching
+            let targetPlaceIds: number[] | null = null;
+            let overrideMaps: {
+                reviewCount?: Map<number, number>;
+                avgRating?: Map<number, number>;
+                mylistCount?: Map<number, number>;
+            } = {};
+
+            // For dynamic rankings (mylist, reviews, rating), we need to aggregate first
+            // Note: This approach scales well for small-medium apps. 
+            // For large scale, we should maintain counter columns in 'places' table via triggers.
+            if (rankingType === "mylist") {
+                const { data: allMylists } = await supabase
+                    .from("user_mylist")
+                    .select("place_id");
+
+                if (allMylists) {
+                    const counts = new Map<number, number>();
+                    allMylists.forEach((item: { place_id: number }) => {
+                        counts.set(item.place_id, (counts.get(item.place_id) || 0) + 1);
+                    });
+
+                    // Sort by count descending and take top 100
+                    targetPlaceIds = Array.from(counts.entries())
+                        .sort((a, b) => b[1] - a[1])
+                        .slice(0, 100)
+                        .map(entry => entry[0]);
+
+                    overrideMaps.mylistCount = counts;
+                }
+            } else if (rankingType === "reviews" || rankingType === "rating") {
+                const { data: allReviews } = await supabase
+                    .from("reviews")
+                    .select("place_id, rating");
+
+                if (allReviews) {
+                    const counts = new Map<number, number>(); // Review count
+                    const ratings = new Map<number, { sum: number; count: number }>(); // For avg
+
+                    allReviews.forEach((r: { place_id: number; rating: number }) => {
+                        // Count
+                        counts.set(r.place_id, (counts.get(r.place_id) || 0) + 1);
+                        // Rating
+                        const current = ratings.get(r.place_id) || { sum: 0, count: 0 };
+                        ratings.set(r.place_id, { sum: current.sum + r.rating, count: current.count + 1 });
+                    });
+
+                    // Sort logic
+                    if (rankingType === "reviews") {
+                        targetPlaceIds = Array.from(counts.entries())
+                            .sort((a, b) => b[1] - a[1])
+                            .slice(0, 100)
+                            .map(entry => entry[0]);
+                    } else {
+                        // rating: filter < 3 reviews
+                        targetPlaceIds = Array.from(ratings.entries())
+                            .filter(entry => entry[1].count >= 3)
+                            .map(entry => [entry[0], entry[1].sum / entry[1].count] as [number, number])
+                            .sort((a, b) => b[1] - a[1])
+                            .slice(0, 100)
+                            .map(entry => entry[0]);
+                    }
+
+                    overrideMaps.reviewCount = counts;
+                    overrideMaps.avgRating = new Map(
+                        Array.from(ratings.entries()).map(([k, v]) => [k, v.sum / v.count])
+                    );
+                }
+            }
+
+            // Build Main Query
             let query = supabase
                 .from("places")
-                .select("*")
-                .gte("favorite_count", 50);
+                .select("*");
+
+            // Apply filters
+            if (targetPlaceIds !== null) {
+                // If we found specific IDs from secondary tables, fetch only those
+                if (targetPlaceIds.length === 0) {
+                    // No data found for this ranking
+                    setPlaces([]);
+                    setLoading(false);
+                    return;
+                }
+                query = query.in("place_id", targetPlaceIds);
+            } else {
+                // Default fallback logic (overall, playing, trending, favorites)
+                // Use default filters
+                query = query.gte("favorite_count", 50);
+
+                switch (rankingType) {
+                    case "playing":
+                        query = query.order("playing", { ascending: false });
+                        break;
+                    case "favorites":
+                        query = query.order("favorite_count", { ascending: false });
+                        break;
+                    case "hidden":
+                        query = query.lt("visit_count", 1000000).order("visit_count", { ascending: false });
+                        break;
+                    default:
+                        // trending uses visits as base then sorts in JS
+                        // overall uses visits
+                        query = query.order("visit_count", { ascending: false });
+                }
+                query = query.limit(100);
+            }
 
             if (selectedGenre !== "all") {
                 query = query.eq("genre", selectedGenre);
             }
 
-            switch (rankingType) {
-                case "playing":
-                    query = query.order("playing", { ascending: false });
-                    break;
-                case "favorites":
-                    query = query.order("favorite_count", { ascending: false });
-                    break;
-                default:
-                    query = query.order("visit_count", { ascending: false });
-            }
-
-            const { data: placeData } = await query.limit(100);
+            const { data: placeData } = await query;
 
             if (!placeData) {
                 setLoading(false);
                 return;
             }
 
-            const placeIds = placeData.map((p: Place) => p.place_id);
+            const fetchIds = placeData.map((p: Place) => p.place_id);
 
-            // Fetch yesterday's date for trending calculation
+            // --- Secondary Data Fetching (Stats) ---
+            // Even if we already have some stats from step 1 (overrideMaps), we might need others
+            // e.g. trending needs history, all need mylists/reviews for display
+
             const yesterday = new Date();
             yesterday.setDate(yesterday.getDate() - 1);
             const yesterdayStr = yesterday.toISOString().split('T')[0];
 
-            // Fetch reviews, mylist, and history data in parallel
             const [reviewsResult, mylistResult, historyResult] = await Promise.all([
-                supabase
-                    .from("reviews")
-                    .select("place_id, rating")
-                    .in("place_id", placeIds),
-                supabase
-                    .from("user_mylist")
-                    .select("place_id")
-                    .in("place_id", placeIds),
-                supabase
-                    .from("place_stats_history")
-                    .select("place_id, visit_count")
-                    .eq("recorded_at", yesterdayStr)
-                    .in("place_id", placeIds)
+                supabase.from("reviews").select("place_id, rating").in("place_id", fetchIds),
+                supabase.from("user_mylist").select("place_id").in("place_id", fetchIds),
+                supabase.from("place_stats_history").select("place_id, visit_count").eq("recorded_at", yesterdayStr).in("place_id", fetchIds)
             ]);
 
             const allReviews = reviewsResult.data;
             const mylistData = mylistResult.data;
             const historyData = historyResult.data;
 
-            const reviewsMap = new Map<number, { count: number; sum: number }>();
+            // Compute Stats
+            // (Use overrideMaps if available for primary sorting metric to ensure consistency, 
+            // but refresh other metrics)
+
+            const reviewsDisplayMap = new Map<number, { count: number; sum: number }>();
             if (allReviews) {
                 for (const r of allReviews) {
-                    const current = reviewsMap.get(r.place_id) || { count: 0, sum: 0 };
-                    reviewsMap.set(r.place_id, {
+                    const current = reviewsDisplayMap.get(r.place_id) || { count: 0, sum: 0 };
+                    reviewsDisplayMap.set(r.place_id, {
                         count: current.count + 1,
                         sum: current.sum + r.rating,
                     });
                 }
             }
 
-            const mylistMap = new Map<number, number>();
+            const mylistDisplayMap = new Map<number, number>();
             if (mylistData) {
                 for (const m of mylistData) {
-                    mylistMap.set(m.place_id, (mylistMap.get(m.place_id) || 0) + 1);
+                    mylistDisplayMap.set(m.place_id, (mylistDisplayMap.get(m.place_id) || 0) + 1);
                 }
             }
 
@@ -138,12 +226,16 @@ export default function RankingPage() {
                 }
             }
 
+            // Merge Data
             const withRatings = placeData.map((p: Place) => {
-                const stats = reviewsMap.get(p.place_id);
-                const count = stats?.count || 0;
-                const avg = count > 0 ? stats!.sum / count : 0;
+                const reviewStats = reviewsDisplayMap.get(p.place_id);
+                // Prefer fetching fresh stats, but logic flow ensures consistency
 
-                // Calculate trend score (visit increase from yesterday)
+                const count = reviewStats?.count || 0;
+                const avg = count > 0 ? (reviewStats!.sum / count) : 0;
+                const mylistCount = mylistDisplayMap.get(p.place_id) || 0;
+
+                // Calculate trend
                 const yesterdayVisits = historyMap.get(p.place_id) || 0;
                 const currentVisits = p.visit_count || 0;
                 const trendScore = yesterdayVisits > 0
@@ -154,7 +246,7 @@ export default function RankingPage() {
                     ...p,
                     average_rating: avg,
                     review_count: count,
-                    mylist_count: mylistMap.get(p.place_id) || 0,
+                    mylist_count: mylistCount,
                     trend_score: trendScore,
                 };
             });
@@ -169,7 +261,6 @@ export default function RankingPage() {
     const sortedPlaces = [...places].sort((a, b) => {
         switch (rankingType) {
             case "overall":
-                // Roblox公式データのみ使用（訪問数ベース）
                 return (b.visit_count || 0) - (a.visit_count || 0);
             case "playing":
                 return (b.playing || 0) - (a.playing || 0);
@@ -178,12 +269,15 @@ export default function RankingPage() {
             case "trending":
                 return (b.trend_score || 0) - (a.trend_score || 0);
             case "rating":
+                // Primary sorting manually done in fetch phase for rating
                 if ((a.review_count || 0) < 3) return 1;
                 if ((b.review_count || 0) < 3) return -1;
                 return (b.average_rating || 0) - (a.average_rating || 0);
             case "reviews":
+                // Primary sorting manually done in fetch phase for reviews
                 return (b.review_count || 0) - (a.review_count || 0);
             case "mylist":
+                // Primary sorting manually done in fetch phase for mylist
                 return (b.mylist_count || 0) - (a.mylist_count || 0);
             case "hidden":
                 const isHiddenA = (a.average_rating || 0) >= 4.5 && a.visit_count < 1000000;
@@ -196,8 +290,17 @@ export default function RankingPage() {
         }
     });
 
+    // --- Format Utilities ---
+    const formatCompactNumber = (num: number) => {
+        return Intl.NumberFormat('en-US', {
+            notation: "compact",
+            maximumFractionDigits: 1
+        }).format(num);
+    };
+
+    // --- UI Configurations ---
     const robloxTabs = [
-        { id: "overall", label: "総合", icon: Trophy },
+        { id: "overall", label: "総訪問数", icon: Trophy },
         { id: "playing", label: "今プレイ中", icon: Users },
         { id: "favorites", label: "お気に入り", icon: Heart },
         { id: "trending", label: "急上昇", icon: TrendingUp },
@@ -210,78 +313,102 @@ export default function RankingPage() {
         { id: "hidden", label: "隠れた名作", icon: Gem },
     ];
 
+    // Define display configuration for each ranking type
+    const getStatsDisplayConfig = (type: RankingType) => {
+        const configs: Record<string, string[]> = {
+            trending: ["trend_score:accent", "playing"],
+            playing: ["playing:accent", "favorites"],
+            overall: ["visits:accent", "playing"],
+            favorites: ["favorites:accent", "playing"],
+            rating: ["rating:accent", "visits"],
+            reviews: ["reviews:accent", "visits"],
+            mylist: ["mylist:accent", "favorites"],
+            hidden: ["hidden_score:accent", "favorites"],
+            default: ["playing:accent", "visits"]
+        };
+        return configs[type] || configs["default"];
+    };
+
     return (
         <main className="min-h-screen bg-[#0B0E14] text-white pb-20">
             {/* Header */}
-            <div className="bg-[#0B0E14]/80 backdrop-blur-md border-b border-slate-800 sticky top-0 z-20">
-                <div className="max-w-7xl mx-auto px-6 py-6">
+            <div className="bg-[#0B0E14]/80 backdrop-blur-md border-b border-white/5 sticky top-0 z-20">
+                <div className="max-w-7xl mx-auto px-4 md:px-6 py-4 md:py-6">
                     <div className="flex items-center gap-4 mb-6">
-                        <Link href="/" className="text-slate-400 hover:text-white transition-colors p-2 -ml-2 rounded-full hover:bg-slate-800">
+                        <Link href="/" className="text-slate-400 hover:text-white transition-colors p-2 -ml-2 rounded-full hover:bg-white/5">
                             <ChevronLeft className="w-5 h-5" />
                         </Link>
                         <div>
-                            <h1 className="text-2xl font-bold flex items-center gap-2">
-                                <Trophy className="w-6 h-6 text-yellow-500" />
+                            <h1 className="text-xl md:text-2xl font-bold flex items-center gap-2">
+                                <Trophy className="w-5 h-5 md:w-6 md:h-6 text-yellow-500" />
                                 ランキング
                             </h1>
                         </div>
                     </div>
 
-                    <div className="flex flex-col gap-4">
-                        {/* Roblox Data Tabs */}
-                        <div className="flex flex-col gap-2">
-                            <span className="text-xs text-slate-500 font-medium">Robloxデータ</span>
-                            <div className="flex gap-1 overflow-x-auto no-scrollbar -mx-6 px-6 md:mx-0 md:px-0">
-                                {robloxTabs.map((tab) => (
-                                    <button
-                                        key={tab.id}
-                                        onClick={() => setRankingType(tab.id as RankingType)}
-                                        className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all border ${rankingType === tab.id
-                                            ? "bg-slate-800 text-white border-slate-600 shadow-lg shadow-black/20"
-                                            : "bg-transparent text-slate-400 border-transparent hover:bg-slate-800/50 hover:text-slate-200"
-                                            }`}
-                                    >
-                                        <tab.icon className={`w-4 h-4 ${rankingType === tab.id ? "text-yellow-400" : ""}`} />
-                                        {tab.label}
-                                    </button>
-                                ))}
+                    <div className="flex flex-col gap-6">
+                        {/* Tabs Container */}
+                        <div className="space-y-4">
+                            {/* Roblox Data Tabs */}
+                            <div className="space-y-2">
+                                <span className="text-[10px] uppercase tracking-wider text-slate-500 font-bold px-1">Roblox Stats</span>
+                                <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-4 px-4 md:mx-0 md:px-0">
+                                    {robloxTabs.map((tab) => (
+                                        <button
+                                            key={tab.id}
+                                            onClick={() => setRankingType(tab.id as RankingType)}
+                                            className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs md:text-sm font-medium whitespace-nowrap transition-all border ${rankingType === tab.id
+                                                ? "bg-slate-800 text-white border-slate-600 shadow-[0_0_15px_-5px_rgba(0,0,0,0.5)]"
+                                                : "bg-transparent text-slate-400 border-transparent hover:bg-slate-800/50 hover:text-slate-200"
+                                                }`}
+                                        >
+                                            <tab.icon className={`w-3.5 h-3.5 ${rankingType === tab.id ? "text-yellow-400" : ""}`} />
+                                            {tab.label}
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
-                        </div>
 
-                        {/* Site Data Tabs */}
-                        <div className="flex flex-col gap-2">
-                            <span className="text-xs text-slate-500 font-medium">サイトデータ</span>
-                            <div className="flex gap-1 overflow-x-auto no-scrollbar -mx-6 px-6 md:mx-0 md:px-0">
-                                {siteTabs.map((tab) => (
-                                    <button
-                                        key={tab.id}
-                                        onClick={() => setRankingType(tab.id as RankingType)}
-                                        className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all border ${rankingType === tab.id
-                                            ? "bg-slate-800 text-white border-slate-600 shadow-lg shadow-black/20"
-                                            : "bg-transparent text-slate-400 border-transparent hover:bg-slate-800/50 hover:text-slate-200"
-                                            }`}
-                                    >
-                                        <tab.icon className={`w-4 h-4 ${rankingType === tab.id ? "text-yellow-400" : ""}`} />
-                                        {tab.label}
-                                    </button>
-                                ))}
+                            {/* Site Data Tabs */}
+                            <div className="space-y-2">
+                                <span className="text-[10px] uppercase tracking-wider text-slate-500 font-bold px-1">Community Stats</span>
+                                <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-4 px-4 md:mx-0 md:px-0">
+                                    {siteTabs.map((tab) => (
+                                        <button
+                                            key={tab.id}
+                                            onClick={() => setRankingType(tab.id as RankingType)}
+                                            className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs md:text-sm font-medium whitespace-nowrap transition-all border ${rankingType === tab.id
+                                                ? "bg-slate-800 text-white border-slate-600 shadow-[0_0_15px_-5px_rgba(0,0,0,0.5)]"
+                                                : "bg-transparent text-slate-400 border-transparent hover:bg-slate-800/50 hover:text-slate-200"
+                                                }`}
+                                        >
+                                            <tab.icon className={`w-3.5 h-3.5 ${rankingType === tab.id ? "text-yellow-400" : ""}`} />
+                                            {tab.label}
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
                         </div>
 
                         {/* Genre Filter */}
-                        <div className="mt-2">
-                            <select
-                                value={selectedGenre}
-                                onChange={(e) => setSelectedGenre(e.target.value)}
-                                className="bg-[#151921] border border-slate-700 text-slate-200 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-slate-600 outline-none w-full md:w-auto hover:border-slate-600 transition-colors cursor-pointer"
-                            >
-                                <option value="all">全ジャンル</option>
-                                {genres.map((genre) => (
-                                    <option key={genre.id} value={genre.id}>
-                                        {genre.name}
-                                    </option>
-                                ))}
-                            </select>
+                        <div>
+                            <div className="relative inline-block w-full md:w-auto">
+                                <select
+                                    value={selectedGenre}
+                                    onChange={(e) => setSelectedGenre(e.target.value)}
+                                    className="appearance-none bg-[#1A1F29] border border-white/10 text-slate-200 rounded-lg pl-4 pr-10 py-2 text-sm focus:ring-2 focus:ring-slate-600 outline-none w-full hover:border-slate-500 transition-colors cursor-pointer"
+                                >
+                                    <option value="all">全ジャンル</option>
+                                    {genres.map((genre) => (
+                                        <option key={genre.id} value={genre.id}>
+                                            {genre.name}
+                                        </option>
+                                    ))}
+                                </select>
+                                <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none text-slate-400">
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -296,135 +423,145 @@ export default function RankingPage() {
                         ))}
                     </div>
                 ) : (
-                    <div className="space-y-2 sm:space-y-3">
-                        {sortedPlaces.slice(0, 50).map((place, index) => (
-                            <div
-                                key={place.place_id}
-                                onClick={() => router.push(`/place/${place.place_id}`)}
-                                className="group cursor-pointer bg-[#151921] hover:bg-[#1c222c] rounded-xl p-2 sm:p-3 md:p-4 border border-slate-800 hover:border-slate-700 transition-all flex items-center gap-2 sm:gap-4"
-                            >
-                                {/* Rank */}
+                    <div className="space-y-3">
+                        {sortedPlaces.slice(0, 50).map((place, index) => {
+                            const statsConfig = getStatsDisplayConfig(rankingType);
+                            const isTop3 = index < 3;
+
+                            return (
                                 <div
-                                    className={`text-lg sm:text-2xl md:text-3xl font-bold w-7 sm:w-12 md:w-16 text-center shrink-0 font-mono ${index === 0
-                                        ? "text-yellow-400 drop-shadow-[0_0_8px_rgba(250,204,21,0.3)]"
-                                        : index === 1
-                                            ? "text-slate-300"
-                                            : index === 2
-                                                ? "text-amber-600"
-                                                : "text-slate-600"
+                                    key={place.place_id}
+                                    onClick={() => router.push(`/place/${place.place_id}`)}
+                                    className={`group cursor-pointer relative bg-[#151921]/50 hover:bg-[#1A1F29] rounded-xl p-3 md:p-4 border transition-all duration-300 flex items-center gap-3 sm:gap-5 ${isTop3
+                                        ? "border-yellow-500/20 shadow-[0_0_20px_-10px_rgba(234,179,8,0.1)] hover:shadow-[0_0_25px_-10px_rgba(234,179,8,0.2)]"
+                                        : "border-white/5 hover:border-slate-600"
                                         }`}
                                 >
-                                    {index + 1}
-                                </div>
+                                    {/* Rank Badge */}
+                                    <div className={`
+                                        flex flex-col items-center justify-center w-8 sm:w-12 shrink-0
+                                        ${index === 0 ? "text-yellow-400" : index === 1 ? "text-slate-300" : index === 2 ? "text-amber-600" : "text-slate-600"}
+                                    `}>
+                                        {index < 3 && <Medal className="w-4 h-4 sm:w-6 sm:h-6 mb-0.5 opacity-80" />}
+                                        <span className={`font-mono font-bold leading-none ${index < 3 ? "text-xl sm:text-2xl" : "text-lg sm:text-xl"}`}>
+                                            {index + 1}
+                                        </span>
+                                    </div>
 
-                                {/* Thumbnail */}
-                                <div className="w-16 h-10 sm:w-24 sm:h-14 md:w-40 md:h-24 bg-slate-800 rounded-lg overflow-hidden shrink-0 relative">
-                                    {place.thumbnail_url ? (
-                                        <img
-                                            src={place.thumbnail_url}
-                                            alt={place.name}
-                                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                                        />
-                                    ) : (
-                                        <div className="w-full h-full flex items-center justify-center text-slate-600">
-                                            <Gem className="w-6 h-6 sm:w-8 sm:h-8 opacity-20" />
-                                        </div>
-                                    )}
-                                </div>
-
-                                {/* Info */}
-                                <div className="flex-1 min-w-0 py-0.5 sm:py-1">
-                                    <h3 className="text-sm sm:text-base md:text-lg font-bold text-slate-100 truncate group-hover:text-yellow-400 transition-colors">
-                                        {place.name}
-                                    </h3>
-                                    <div className="flex items-center gap-2 text-[10px] sm:text-xs md:text-sm text-slate-500 mb-1 sm:mb-2">
-                                        <span className="truncate">by {place.creator_name}</span>
-                                        {place.genre && (
-                                            <span className="bg-slate-800 text-slate-400 px-2 py-0.5 rounded text-[10px] hidden sm:inline-block border border-slate-700">
-                                                {getGenreName(place.genre)}
-                                            </span>
+                                    {/* Thumbnail */}
+                                    <div className="w-20 h-12 sm:w-32 sm:h-20 bg-slate-800 rounded-lg overflow-hidden shrink-0 relative shadow-lg">
+                                        {place.thumbnail_url ? (
+                                            <img
+                                                src={place.thumbnail_url}
+                                                alt={place.name}
+                                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                            />
+                                        ) : (
+                                            <div className="w-full h-full flex items-center justify-center text-slate-600">
+                                                <Gem className="w-6 h-6 sm:w-8 sm:h-8 opacity-20" />
+                                            </div>
                                         )}
                                     </div>
 
-                                    <div className="flex items-center gap-2 sm:gap-4 text-[10px] sm:text-xs md:text-sm text-slate-400">
-                                        {/* 1st: Always show rating */}
-                                        <div className="flex items-center gap-0.5 sm:gap-1 text-yellow-500 font-bold bg-yellow-500/10 px-1 sm:px-1.5 py-0.5 rounded">
-                                            <Star className="w-2.5 h-2.5 sm:w-3 sm:h-3 md:w-3.5 md:h-3.5 fill-yellow-500" />
-                                            {place.average_rating ? place.average_rating.toFixed(1) : "-"}
+                                    {/* Info & Stats */}
+                                    <div className="flex-1 min-w-0 flex flex-col justify-center gap-1.5">
+                                        <div>
+                                            <h3 className="text-sm sm:text-lg font-bold text-slate-100 truncate group-hover:text-yellow-400 transition-colors">
+                                                {place.name}
+                                            </h3>
+                                            <div className="flex items-center gap-2 text-[10px] sm:text-xs text-slate-500">
+                                                <span className="truncate hover:text-slate-300 transition-colors">{place.creator_name}</span>
+                                                {place.genre && (
+                                                    <span className="bg-white/5 text-slate-400 px-1.5 py-0.5 rounded text-[10px] border border-white/5">
+                                                        {getGenreName(place.genre)}
+                                                    </span>
+                                                )}
+                                            </div>
                                         </div>
 
-                                        {/* 2nd: Ranking-specific metric */}
-                                        {rankingType === "trending" && (
-                                            <div className={`flex items-center gap-0.5 sm:gap-1 font-bold px-1.5 sm:px-2 py-0.5 rounded ${(place.trend_score || 0) > 0
-                                                ? "text-green-400 bg-green-500/10"
-                                                : (place.trend_score || 0) < 0
-                                                    ? "text-red-400 bg-red-500/10"
-                                                    : "text-slate-400 bg-slate-700/50"
-                                                }`}>
-                                                <TrendingUp className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                                                {(place.trend_score || 0) > 0 ? "+" : ""}{(place.trend_score || 0).toFixed(1)}%
-                                            </div>
-                                        )}
-                                        {rankingType === "playing" && place.playing !== null && place.playing > 0 && (
-                                            <div className="flex items-center gap-0.5 sm:gap-1 text-green-400 bg-green-500/10 px-1 sm:px-1.5 py-0.5 rounded font-medium">
-                                                <Users className="w-2.5 h-2.5 sm:w-3 sm:h-3 md:w-3.5 md:h-3.5" />
-                                                {place.playing.toLocaleString()}
-                                            </div>
-                                        )}
-                                        {rankingType === "favorites" && (
-                                            <div className="flex items-center gap-0.5 sm:gap-1 text-pink-400 bg-pink-500/10 px-1 sm:px-1.5 py-0.5 rounded font-medium">
-                                                <Heart className="w-2.5 h-2.5 sm:w-3 sm:h-3 md:w-3.5 md:h-3.5 fill-pink-400" />
-                                                {(place.favorite_count / 1000).toFixed(1)}K+
-                                            </div>
-                                        )}
-                                        {rankingType === "overall" && (
-                                            <div className="flex items-center gap-0.5 sm:gap-1 text-slate-300 bg-slate-700/50 px-1 sm:px-1.5 py-0.5 rounded font-medium">
-                                                <Eye className="w-2.5 h-2.5 sm:w-3 sm:h-3 md:w-3.5 md:h-3.5" />
-                                                {(place.visit_count / 1000000).toFixed(1)}M+
-                                            </div>
-                                        )}
-                                        {rankingType === "reviews" && (
-                                            <div className="flex items-center gap-0.5 sm:gap-1 text-blue-400 bg-blue-500/10 px-1 sm:px-1.5 py-0.5 rounded font-medium">
-                                                <MessageCircle className="w-2.5 h-2.5 sm:w-3 sm:h-3 md:w-3.5 md:h-3.5" />
-                                                {place.review_count || 0}
-                                            </div>
-                                        )}
-                                        {rankingType === "mylist" && (
-                                            <div className="flex items-center gap-0.5 sm:gap-1 text-purple-400 bg-purple-500/10 px-1 sm:px-1.5 py-0.5 rounded font-medium">
-                                                <List className="w-2.5 h-2.5 sm:w-3 sm:h-3 md:w-3.5 md:h-3.5" />
-                                                {place.mylist_count || 0}
-                                            </div>
-                                        )}
-                                        {rankingType === "hidden" && (
-                                            <div className="flex items-center gap-0.5 sm:gap-1 text-slate-400 bg-slate-700/50 px-1 sm:px-1.5 py-0.5 rounded">
-                                                <Eye className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
-                                                {(place.visit_count / 1000000).toFixed(1)}M
-                                            </div>
-                                        )}
+                                        {/* Dynamic Stats Row */}
+                                        <div className="flex items-center gap-3 sm:gap-6 text-xs sm:text-sm">
+                                            {/* Always show Rating if available */}
+                                            {place.average_rating !== undefined && place.average_rating > 0 && (
+                                                <div className="flex items-center gap-1 text-yellow-500 font-bold" title="Average Rating">
+                                                    <Star className="w-3.5 h-3.5 fill-yellow-500" />
+                                                    {place.average_rating.toFixed(1)}
+                                                </div>
+                                            )}
 
-                                        {/* Secondary stats - hidden on mobile */}
-                                        {rankingType !== "playing" && place.playing !== null && place.playing > 0 && (
-                                            <div className="items-center gap-0.5 sm:gap-1 text-green-400 bg-green-500/10 px-1 sm:px-1.5 py-0.5 rounded font-medium hidden sm:flex">
-                                                <Users className="w-2.5 h-2.5 sm:w-3 sm:h-3 md:w-3.5 md:h-3.5" />
-                                                {place.playing.toLocaleString()}
-                                            </div>
-                                        )}
-                                        {rankingType !== "overall" && rankingType !== "hidden" && (
-                                            <div className="items-center gap-0.5 sm:gap-1 hidden sm:flex">
-                                                <Eye className="w-2.5 h-2.5 sm:w-3 sm:h-3 md:w-3.5 md:h-3.5" />
-                                                {(place.visit_count / 1000000).toFixed(1)}M+
-                                            </div>
-                                        )}
-                                        {rankingType !== "favorites" && (
-                                            <div className="items-center gap-1 hidden sm:flex">
-                                                <Heart className="w-3 h-3 md:w-3.5 md:h-3.5" />
-                                                {(place.favorite_count / 1000).toFixed(1)}K+
-                                            </div>
-                                        )}
+                                            {/* Configurable Stats */}
+                                            {statsConfig.map((configStr, i) => {
+                                                const [key, modifier] = configStr.split(":");
+                                                const isAccent = modifier === "accent";
+
+                                                if (key === "trend_score" && rankingType === "trending") {
+                                                    const score = place.trend_score || 0;
+                                                    const isPositive = score > 0;
+                                                    return (
+                                                        <div key={key} className={`flex items-center gap-1 font-bold ${isPositive ? "text-emerald-400" : "text-red-400"}`}>
+                                                            <TrendingUp className="w-3.5 h-3.5" />
+                                                            <span>{isPositive && "+"}{score.toFixed(1)}%</span>
+                                                        </div>
+                                                    );
+                                                }
+
+                                                if (key === "playing" && place.playing !== null) {
+                                                    return (
+                                                        <div key={key} className={`flex items-center gap-1 ${isAccent ? "text-green-400 font-bold" : "text-slate-500"}`}>
+                                                            <Users className={`w-3.5 h-3.5 ${isAccent ? "text-green-400" : "text-slate-600"}`} />
+                                                            <span>{place.playing.toLocaleString()}</span>
+                                                        </div>
+                                                    );
+                                                }
+
+                                                if (key === "visits") {
+                                                    return (
+                                                        <div key={key} className={`flex items-center gap-1 hidden sm:flex ${isAccent ? "text-blue-200 font-bold" : "text-slate-500"}`}>
+                                                            <Eye className={`w-3.5 h-3.5 ${isAccent ? "text-blue-400" : "text-slate-600"}`} />
+                                                            <span>{formatCompactNumber(place.visit_count)}</span>
+                                                        </div>
+                                                    );
+                                                }
+
+                                                if (key === "favorites") {
+                                                    return (
+                                                        <div key={key} className={`flex items-center gap-1 hidden sm:flex ${isAccent ? "text-pink-400 font-bold" : "text-slate-500"}`}>
+                                                            <Heart className={`w-3.5 h-3.5 ${isAccent ? "fill-pink-400 text-pink-400" : "text-slate-600"}`} />
+                                                            <span>{formatCompactNumber(place.favorite_count)}</span>
+                                                        </div>
+                                                    );
+                                                }
+
+                                                if (key === "reviews" && place.review_count !== undefined) {
+                                                    return (
+                                                        <div key={key} className={`flex items-center gap-1 ${isAccent ? "text-blue-400 font-bold" : "text-slate-500"}`}>
+                                                            <MessageCircle className="w-3.5 h-3.5" />
+                                                            <span>{place.review_count}</span>
+                                                        </div>
+                                                    );
+                                                }
+
+                                                if (key === "mylist" && place.mylist_count !== undefined) {
+                                                    return (
+                                                        <div key={key} className={`flex items-center gap-1 ${isAccent ? "text-purple-400 font-bold" : "text-slate-500"}`}>
+                                                            <List className="w-3.5 h-3.5" />
+                                                            <span>{place.mylist_count}</span>
+                                                        </div>
+                                                    );
+                                                }
+
+                                                return null;
+                                            })}
+                                        </div>
+                                    </div>
+
+                                    {/* Right Side Decoration (Desktop only) */}
+                                    <div className="hidden md:block ml-auto opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <ChevronLeft className="w-5 h-5 text-slate-600 rotate-180" />
                                     </div>
                                 </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 )}
             </div>

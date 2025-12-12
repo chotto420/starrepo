@@ -59,7 +59,7 @@ function SearchContent() {
         const { data: placeData, count } = await supabase
             .from("places")
             .select("*", { count: "exact" })
-            .gte("favorite_count", 50)
+            .gte("favorite_count", 10)
             .or(`name.ilike.%${query}%,creator_name.ilike.%${query}%`)
             .range(from, to);
 
@@ -70,7 +70,7 @@ function SearchContent() {
         }
 
         // Fetch reviews
-        const placeIds = placeData.map((p) => p.place_id);
+        const placeIds = placeData.map((p: any) => p.place_id);
         const { data: allReviews } = await supabase
             .from("reviews")
             .select("place_id, rating")
@@ -87,7 +87,7 @@ function SearchContent() {
             }
         }
 
-        const withRatings = placeData.map((p) => {
+        const withRatings = placeData.map((p: any) => {
             const stats = reviewsMap.get(p.place_id);
             const count = stats?.count || 0;
             const avg = count > 0 ? stats!.sum / count : 0;
@@ -96,11 +96,11 @@ function SearchContent() {
                 ...p,
                 average_rating: avg,
                 review_count: count,
-            };
+            } as Place;
         });
 
         // Filter by rating
-        const filtered = withRatings.filter((p) => (p.average_rating || 0) >= minRating);
+        const filtered = withRatings.filter((p: Place) => (p.average_rating || 0) >= minRating);
 
         if (isInitialLoad) {
             setPlaces(filtered);
@@ -220,38 +220,65 @@ function SearchContent() {
                 ) : places.length > 0 ? (
                     <>
                         <p className="text-slate-400 mb-6">{sortedPlaces.length}件の結果</p>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6">
                             {sortedPlaces.map((place) => (
                                 <div
                                     key={place.place_id}
                                     onClick={() => router.push(`/place/${place.place_id}`)}
-                                    className="group cursor-pointer bg-slate-800 rounded-xl overflow-hidden border border-slate-700 hover:border-yellow-500/50 hover:shadow-lg transition-all"
+                                    className="group relative bg-[#1c222c] rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 block cursor-pointer"
                                 >
-                                    <div className="relative h-48 bg-slate-700">
+                                    {/* Thumbnail Container */}
+                                    <div className="relative aspect-video overflow-hidden">
                                         {place.thumbnail_url ? (
                                             <img
                                                 src={place.thumbnail_url}
                                                 alt={place.name}
-                                                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                                                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                                             />
                                         ) : (
-                                            <div className="w-full h-full flex items-center justify-center text-slate-500">画像なし</div>
+                                            <div className="w-full h-full bg-slate-700 flex items-center justify-center text-4xl">
+                                                <span className="text-slate-500 opacity-50">🎮</span>
+                                            </div>
                                         )}
-                                        <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 to-transparent"></div>
-                                        <div className="absolute bottom-3 left-3 right-3">
-                                            <h3 className="text-lg font-bold text-white truncate group-hover:text-yellow-400 transition-colors">
-                                                {place.name}
-                                            </h3>
-                                            <p className="text-xs text-slate-400 truncate">by {place.creator_name}</p>
-                                        </div>
+
+                                        {/* Overlay Gradient on Hover */}
+                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                                     </div>
-                                    <div className="p-4 flex items-center justify-between text-sm">
-                                        <div className="flex items-center gap-1">
-                                            <span className="text-yellow-500">★</span>
-                                            <span>{place.average_rating ? place.average_rating.toFixed(1) : "-"}</span>
-                                        </div>
-                                        <div className="flex gap-3 text-xs text-slate-400">
-                                            <span>👁 {(place.visit_count / 1000000).toFixed(1)}M+</span>
+
+                                    {/* Content */}
+                                    <div className="p-2 sm:p-4">
+                                        <h3 className="text-white font-bold text-sm sm:text-lg mb-0.5 sm:mb-1 truncate group-hover:text-yellow-400 transition-colors">
+                                            {place.name}
+                                        </h3>
+                                        <p className="text-slate-400 text-xs mb-2 sm:mb-3 flex items-center gap-1 truncate">
+                                            <span className="opacity-70">by</span>
+                                            <span className="truncate">{place.creator_name}</span>
+                                        </p>
+
+                                        <div className="flex items-center justify-between pt-1.5 sm:pt-2 border-t border-slate-700/50">
+                                            <div className="flex items-center gap-0.5 sm:gap-1 text-yellow-400 font-bold text-xs sm:text-sm">
+                                                <span className="text-yellow-400">★</span>
+                                                <span>{(place.average_rating || 0).toFixed(1)}</span>
+                                            </div>
+                                            <div className="flex items-center gap-2 sm:gap-3 text-xs font-medium text-slate-400">
+                                                <span className="flex items-center gap-0.5 sm:gap-1" title="総訪問数">
+                                                    <span>👁</span>
+                                                    <span className="hidden sm:inline">
+                                                        {place.visit_count >= 1000000
+                                                            ? (place.visit_count / 1000000).toFixed(1) + "M"
+                                                            : place.visit_count >= 1000
+                                                                ? (place.visit_count / 1000).toFixed(1) + "k"
+                                                                : place.visit_count}
+                                                    </span>
+                                                    <span className="sm:hidden text-[10px]">
+                                                        {place.visit_count >= 1000000
+                                                            ? (place.visit_count / 1000000).toFixed(1) + "M"
+                                                            : place.visit_count >= 1000
+                                                                ? (place.visit_count / 1000).toFixed(1) + "k"
+                                                                : place.visit_count}
+                                                    </span>
+                                                </span>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>

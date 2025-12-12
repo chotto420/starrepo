@@ -46,7 +46,7 @@ export default function GenreDetailPage() {
             }
 
             // Fetch reviews
-            const placeIds = placeData.map((p) => p.place_id);
+            const placeIds = placeData.map((p: { place_id: number }) => p.place_id);
             const { data: allReviews } = await supabase
                 .from("reviews")
                 .select("place_id, rating")
@@ -63,7 +63,7 @@ export default function GenreDetailPage() {
                 }
             }
 
-            const withRatings = placeData.map((p) => {
+            const withRatings = placeData.map((p: Place) => {
                 const stats = reviewsMap.get(p.place_id);
                 const count = stats?.count || 0;
                 const avg = count > 0 ? stats!.sum / count : 0;

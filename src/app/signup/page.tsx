@@ -1,18 +1,29 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useActionState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { signup } from "../auth/actions";
 import Link from "next/link";
 
+type SignupState = {
+    message?: string;
+    error?: string;
+};
+
+const initialState: SignupState = {
+    message: "",
+    error: "",
+};
+
 export default function SignupPage() {
     const [googleLoading, setGoogleLoading] = useState(false);
-    const [error, setError] = useState("");
+    const [googleError, setGoogleError] = useState("");
+    const [state, formAction, isPending] = useActionState<SignupState, FormData>(signup, initialState);
     const supabase = createClient();
 
     const handleGoogleLogin = async () => {
         setGoogleLoading(true);
-        setError("");
+        setGoogleError("");
 
         try {
             const { error } = await supabase.auth.signInWithOAuth({
@@ -23,11 +34,11 @@ export default function SignupPage() {
             });
 
             if (error) {
-                setError("Googleログインに失敗しました: " + error.message);
+                setGoogleError("Googleログインに失敗しました: " + error.message);
                 setGoogleLoading(false);
             }
         } catch (err) {
-            setError("予期せぬエラーが発生しました。");
+            setGoogleError("予期せぬエラーが発生しました。");
             console.error(err);
             setGoogleLoading(false);
         }
@@ -79,13 +90,25 @@ export default function SignupPage() {
                     </div>
                 </div>
 
-                {error && (
+                {googleError && (
                     <div className="bg-red-500/10 border border-red-500 text-red-500 p-3 rounded-lg text-sm mb-4">
-                        {error}
+                        {googleError}
                     </div>
                 )}
 
-                <form className="space-y-4">
+                {state?.error && (
+                    <div className="bg-red-500/10 border border-red-500 text-red-500 p-3 rounded-lg text-sm mb-4">
+                        {state.error}
+                    </div>
+                )}
+
+                {state?.message && (
+                    <div className="bg-green-500/10 border border-green-500 text-green-500 p-3 rounded-lg text-sm mb-4">
+                        {state.message}
+                    </div>
+                )}
+
+                <form action={formAction} className="space-y-4">
                     <div>
                         <label className="block text-sm font-medium text-slate-400 mb-1">メールアドレス</label>
                         <input
@@ -105,10 +128,11 @@ export default function SignupPage() {
                         />
                     </div>
                     <button
-                        formAction={signup}
-                        className="w-full bg-green-500 hover:bg-green-400 text-white font-bold py-3 rounded-lg transition-colors"
+                        type="submit"
+                        disabled={isPending}
+                        className="w-full bg-green-500 hover:bg-green-400 text-white font-bold py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                        アカウントを作成
+                        {isPending ? "作成中..." : "アカウントを作成"}
                     </button>
                 </form>
                 <p className="mt-6 text-center text-slate-400 text-sm">

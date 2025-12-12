@@ -60,7 +60,7 @@ export default function PlaceList() {
                 console.error("Error fetching places:", error);
             } else if (data && data.length > 0) {
                 // Fetch average ratings from reviews
-                const placeIds = data.map(p => p.place_id);
+                const placeIds = data.map((p: Place) => p.place_id);
                 const { data: reviewStats } = await supabase
                     .from("reviews")
                     .select("place_id, rating")
@@ -68,14 +68,14 @@ export default function PlaceList() {
 
                 // Calculate average ratings
                 const ratingsByPlace: Record<number, number[]> = {};
-                reviewStats?.forEach(r => {
+                reviewStats?.forEach((r: { place_id: number; rating: number }) => {
                     if (!ratingsByPlace[r.place_id]) {
                         ratingsByPlace[r.place_id] = [];
                     }
                     ratingsByPlace[r.place_id].push(r.rating);
                 });
 
-                const placesWithRatings = data.map(p => ({
+                const placesWithRatings = data.map((p: Place) => ({
                     ...p,
                     average_rating: ratingsByPlace[p.place_id]
                         ? ratingsByPlace[p.place_id].reduce((a, b) => a + b, 0) / ratingsByPlace[p.place_id].length
@@ -86,7 +86,7 @@ export default function PlaceList() {
                 setPlaces((prevPlaces) => {
                     // 重複排除 (念のため)
                     const newPlaces = placesWithRatings.filter(
-                        (p) => !prevPlaces.some((existing) => existing.place_id === p.place_id)
+                        (p: Place) => !prevPlaces.some((existing) => existing.place_id === p.place_id)
                     );
                     return [...prevPlaces, ...newPlaces];
                 });

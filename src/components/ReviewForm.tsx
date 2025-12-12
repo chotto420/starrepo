@@ -116,7 +116,7 @@ export default function ReviewForm({
                     onChange={(e) => setComment(e.target.value)}
                     rows={4}
                     className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white focus:ring-2 focus:ring-yellow-500 outline-none"
-                    placeholder="あなたの感想を共有してください..."
+                    placeholder="レビューを入力してください！"
                     required
                 />
             </div>

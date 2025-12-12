@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { AuthChangeEvent, Session } from "@supabase/supabase-js";
 import {
     Home,
     Trophy,
@@ -49,7 +50,8 @@ export default function Header() {
         checkAuth();
 
         // Subscribe to auth changes
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+        // Subscribe to auth changes
+        const { data } = supabase.auth.onAuthStateChange((_event: AuthChangeEvent, session: Session | null) => {
             setUser(session?.user ?? null);
             if (session?.user) {
                 fetchProfile();
@@ -59,7 +61,7 @@ export default function Header() {
         });
 
         return () => {
-            subscription.unsubscribe();
+            data.subscription.unsubscribe();
         };
     }, []);
 
