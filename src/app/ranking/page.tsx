@@ -32,6 +32,8 @@ export default function RankingPage() {
     const [loading, setLoading] = useState(true);
     const [rankingType, setRankingType] = useState<RankingType>("overall");
     const [selectedGenre, setSelectedGenre] = useState<string>("all");
+    const [minRating, setMinRating] = useState<string>("all");
+    const [minReviews, setMinReviews] = useState<string>("all");
     const [genres, setGenres] = useState<Array<{ id: string; name: string }>>([]);
     const router = useRouter();
 
@@ -259,7 +261,20 @@ export default function RankingPage() {
         fetchRanking();
     }, [rankingType, selectedGenre]);
 
-    const sortedPlaces = [...places].sort((a, b) => {
+    // Apply client-side filters for rating and reviews
+    const filteredPlaces = [...places].filter(place => {
+        if (minRating !== "all") {
+            const rating = place.average_rating || 0;
+            if (rating < parseFloat(minRating)) return false;
+        }
+        if (minReviews !== "all") {
+            const reviews = place.review_count || 0;
+            if (reviews < parseInt(minReviews)) return false;
+        }
+        return true;
+    });
+
+    const sortedPlaces = filteredPlaces.sort((a, b) => {
         switch (rankingType) {
             case "overall":
                 return (b.visit_count || 0) - (a.visit_count || 0);
@@ -391,13 +406,14 @@ export default function RankingPage() {
                             </div>
                         </div>
 
-                        {/* Genre Filter */}
-                        <div>
-                            <div className="relative inline-block w-full md:w-auto">
+                        {/* Filters Row */}
+                        <div className="flex flex-wrap gap-3">
+                            {/* Genre Filter */}
+                            <div className="relative">
                                 <select
                                     value={selectedGenre}
                                     onChange={(e) => setSelectedGenre(e.target.value)}
-                                    className="appearance-none bg-[#1A1F29] border border-white/10 text-slate-200 rounded-lg pl-4 pr-10 py-2 text-sm focus:ring-2 focus:ring-slate-600 outline-none w-full hover:border-slate-500 transition-colors cursor-pointer"
+                                    className="appearance-none bg-[#1A1F29] border border-white/10 text-slate-200 rounded-lg pl-4 pr-10 py-2 text-sm focus:ring-2 focus:ring-slate-600 outline-none hover:border-slate-500 transition-colors cursor-pointer"
                                 >
                                     <option value="all">全ジャンル</option>
                                     {genres.map((genre) => (
@@ -405,6 +421,42 @@ export default function RankingPage() {
                                             {genre.name}
                                         </option>
                                     ))}
+                                </select>
+                                <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none text-slate-400">
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                                </div>
+                            </div>
+
+                            {/* Rating Filter */}
+                            <div className="relative">
+                                <select
+                                    value={minRating}
+                                    onChange={(e) => setMinRating(e.target.value)}
+                                    className="appearance-none bg-[#1A1F29] border border-white/10 text-slate-200 rounded-lg pl-4 pr-10 py-2 text-sm focus:ring-2 focus:ring-slate-600 outline-none hover:border-slate-500 transition-colors cursor-pointer"
+                                >
+                                    <option value="all">評価: すべて</option>
+                                    <option value="4.5">⭐ 4.5以上</option>
+                                    <option value="4.0">⭐ 4.0以上</option>
+                                    <option value="3.5">⭐ 3.5以上</option>
+                                    <option value="3.0">⭐ 3.0以上</option>
+                                </select>
+                                <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none text-slate-400">
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                                </div>
+                            </div>
+
+                            {/* Reviews Filter */}
+                            <div className="relative">
+                                <select
+                                    value={minReviews}
+                                    onChange={(e) => setMinReviews(e.target.value)}
+                                    className="appearance-none bg-[#1A1F29] border border-white/10 text-slate-200 rounded-lg pl-4 pr-10 py-2 text-sm focus:ring-2 focus:ring-slate-600 outline-none hover:border-slate-500 transition-colors cursor-pointer"
+                                >
+                                    <option value="all">レビュー: すべて</option>
+                                    <option value="10">10件以上</option>
+                                    <option value="5">5件以上</option>
+                                    <option value="3">3件以上</option>
+                                    <option value="1">1件以上</option>
                                 </select>
                                 <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none text-slate-400">
                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
