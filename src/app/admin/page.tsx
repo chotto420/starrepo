@@ -231,7 +231,7 @@ export default function AdminDashboard() {
                                 <RefreshCw className="w-5 h-5 text-blue-400" />
                                 Robloxデータ更新
                             </h2>
-                            <p className="text-slate-400 mb-4">登録済みのゲーム情報をRoblox APIから更新します（古い順に50件ずつ）。</p>
+                            <p className="text-slate-400 mb-4">登録済みのゲーム情報をRoblox APIから更新します（古い順に20件ずつ）。</p>
 
                             <button
                                 onClick={handleSync}
@@ -239,7 +239,7 @@ export default function AdminDashboard() {
                                 className="inline-flex items-center gap-2 px-4 py-2 bg-blue-500/20 text-blue-400 rounded-lg hover:bg-blue-500/30 transition-colors disabled:opacity-50"
                             >
                                 <RefreshCw className={`w-4 h-4 ${syncing ? "animate-spin" : ""}`} />
-                                {syncing ? "更新中..." : "50件更新"}
+                                {syncing ? "更新中..." : "20件更新"}
                             </button>
 
                             {/* Sync Result */}

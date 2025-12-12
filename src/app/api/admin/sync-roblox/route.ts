@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
         .select("place_id")
         .select("place_id")
         .order("last_synced_at", { ascending: true, nullsFirst: true }) // Oldest synced first
-        .limit(50); // Process 50 items per request to avoid Vercel timeout
+        .limit(20); // Process 20 items per request
 
     if (fetchError) {
         console.error("Fetch places error:", fetchError);
@@ -88,10 +88,8 @@ export async function POST(req: NextRequest) {
                 updated++;
             }
 
-            // Rate limit: wait 500ms between requests to avoid Roblox API throttling
-            // Increase to 1s every 10 requests to be extra safe
-            const delay = (i + 1) % 10 === 0 ? 1000 : 500;
-            await new Promise(resolve => setTimeout(resolve, delay));
+            // Rate limit: wait 1000ms between requests to avoid Roblox API throttling
+            await new Promise(resolve => setTimeout(resolve, 1000));
         } catch (error) {
             failed++;
             errors.push({ placeId: place.place_id, error: String(error) });
