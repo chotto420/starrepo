@@ -1,0 +1,29 @@
+{
+    "name": "StarRepo - Roblox ゲームレビュー",
+    "short_name": "StarRepo",
+    "description": "面白いRobloxゲームをみんなで見つけよう",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#0B0E14",
+    "theme_color": "#0B0E14",
+    "orientation": "portrait-primary",
+    "icons": [
+        {
+            "src": "/images/logo/logo_icon.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "/images/logo/logo_icon_transparent.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable"
+        }
+    ],
+    "categories": [
+        "games",
+        "entertainment"
+    ],
+    "lang": "ja"
+}

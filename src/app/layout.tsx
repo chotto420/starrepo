@@ -4,6 +4,7 @@ import "./globals.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ToastContainer from "@/components/ToastContainer";
+import PWARegister from "@/components/PWARegister";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -87,12 +88,18 @@ export default function RootLayout({
         <html lang="ja" suppressHydrationWarning>
             <head>
                 <meta name="google-site-verification" content="plM2OZGGyTWcPYCRS1Otv1rJSCmK53FJ623mRvj1mcA" />
+                <link rel="manifest" href="/manifest.json" />
+                <meta name="theme-color" content="#0B0E14" />
+                <link rel="apple-touch-icon" href="/images/logo/logo_icon.png" />
+                <meta name="apple-mobile-web-app-capable" content="yes" />
+                <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
                 <script
                     type="application/ld+json"
                     dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
                 />
             </head>
             <body className={inter.className} suppressHydrationWarning={true}>
+                <PWARegister />
                 <Header />
                 <ToastContainer />
                 {children}
