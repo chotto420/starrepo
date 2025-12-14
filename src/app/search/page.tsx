@@ -287,24 +287,32 @@ function SearchContent() {
 
                         {/* Load More Button */}
                         {hasMore && (
-                            <div className="flex justify-center mt-8">
-                                <button
-                                    onClick={loadMore}
-                                    disabled={loadingMore}
-                                    className="px-8 py-3 bg-yellow-500 hover:bg-yellow-400 text-black font-bold rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                    {loadingMore ? (
-                                        <span className="flex items-center gap-2">
-                                            <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle>
-                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                            </svg>
-                                            読み込み中...
-                                        </span>
-                                    ) : (
-                                        "もっと見る"
-                                    )}
-                                </button>
+                            <div className="flex flex-col items-center py-8 gap-4">
+                                {loadingMore ? (
+                                    <div className="flex items-center gap-2 text-slate-400">
+                                        <div className="w-5 h-5 border-2 border-slate-600 border-t-yellow-500 rounded-full animate-spin" />
+                                        <span>読み込み中...</span>
+                                    </div>
+                                ) : (
+                                    <>
+                                        <p className="text-slate-500 text-sm">
+                                            {sortedPlaces.length}件を表示中
+                                        </p>
+                                        <button
+                                            onClick={loadMore}
+                                            className="px-6 py-3 bg-gradient-to-r from-yellow-500 to-amber-500 text-black font-bold rounded-lg hover:from-yellow-400 hover:to-amber-400 transition-all shadow-lg hover:shadow-yellow-500/25"
+                                        >
+                                            さらに24件を読み込む
+                                        </button>
+                                    </>
+                                )}
+                            </div>
+                        )}
+
+                        {/* End of List */}
+                        {!hasMore && sortedPlaces.length > 0 && (
+                            <div className="text-center py-8 text-slate-500 text-sm">
+                                すべての結果を表示しました（{sortedPlaces.length}件）
                             </div>
                         )}
                     </>
