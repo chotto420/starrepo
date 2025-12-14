@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { getGenreName } from "@/lib/roblox";
@@ -30,12 +30,36 @@ type RankingType = "overall" | "playing" | "favorites" | "trending" | "rating" |
 export default function RankingPage() {
     const [places, setPlaces] = useState<Place[]>([]);
     const [loading, setLoading] = useState(true);
+    const [loadingMore, setLoadingMore] = useState(false);
     const [rankingType, setRankingType] = useState<RankingType>("overall");
     const [selectedGenre, setSelectedGenre] = useState<string>("all");
     const [minRating, setMinRating] = useState<string>("all");
     const [minReviews, setMinReviews] = useState<string>("all");
     const [genres, setGenres] = useState<Array<{ id: string; name: string }>>([]);
+    const [page, setPage] = useState(1);
+    const [hasMore, setHasMore] = useState(true);
+    const observer = useRef<IntersectionObserver | null>(null);
     const router = useRouter();
+
+    // 自動読み込みなし（初回のみ、以降はボタン）
+    const AUTO_LOAD_MAX_PAGE = 1;
+
+    // Infinite Scroll Observer（上限まで自動読み込み）
+    const lastPlaceRef = useCallback(
+        (node: HTMLDivElement | null) => {
+            if (loading || loadingMore) return;
+            // 上限に達したら自動読み込みを停止
+            if (page >= AUTO_LOAD_MAX_PAGE) return;
+            if (observer.current) observer.current.disconnect();
+            observer.current = new IntersectionObserver((entries) => {
+                if (entries[0].isIntersecting && hasMore && page < AUTO_LOAD_MAX_PAGE) {
+                    setPage((prev) => prev + 1);
+                }
+            });
+            if (node) observer.current.observe(node);
+        },
+        [loading, loadingMore, hasMore, page]
+    );
 
     useEffect(() => {
         async function fetchGenres() {
@@ -166,7 +190,7 @@ export default function RankingPage() {
                         // overall uses visits
                         query = query.order("visit_count", { ascending: false });
                 }
-                query = query.limit(100);
+                query = query.limit(50);
             }
 
             if (selectedGenre !== "all") {
@@ -256,10 +280,48 @@ export default function RankingPage() {
 
             setPlaces(withRatings);
             setLoading(false);
+            setHasMore(withRatings.length >= 50); // 50件取得時は続きがある可能性
         }
 
         fetchRanking();
     }, [rankingType, selectedGenre]);
+
+    // フィルタ変更時にページをリセット
+    useEffect(() => {
+        setPage(1);
+        setHasMore(true);
+    }, [rankingType, selectedGenre]);
+
+    // 追加データを読み込む（ページ2以降）
+    useEffect(() => {
+        if (page === 1) return;
+
+        async function loadMore() {
+            setLoadingMore(true);
+            try {
+                const res = await fetch(
+                    `/api/ranking?type=${rankingType}&genre=${selectedGenre}&page=${page}&limit=50`
+                );
+                const json = await res.json();
+                if (json.data && json.data.length > 0) {
+                    // 重複を排除
+                    setPlaces((prev) => {
+                        const existingIds = new Set(prev.map(p => p.place_id));
+                        const newItems = json.data.filter((p: Place) => !existingIds.has(p.place_id));
+                        return [...prev, ...newItems];
+                    });
+                    setHasMore(json.hasMore);
+                } else {
+                    setHasMore(false);
+                }
+            } catch (error) {
+                console.error("Failed to load more:", error);
+            }
+            setLoadingMore(false);
+        }
+
+        loadMore();
+    }, [page, rankingType, selectedGenre]);
 
     // Apply client-side filters for rating and reviews
     const filteredPlaces = [...places].filter(place => {
@@ -473,7 +535,7 @@ export default function RankingPage() {
                     <RankingListSkeleton count={10} />
                 ) : (
                     <div className="space-y-3">
-                        {sortedPlaces.slice(0, 50).map((place, index) => {
+                        {sortedPlaces.map((place, index) => {
                             const statsConfig = getStatsDisplayConfig(rankingType);
                             const isTop3 = index < 3;
 
@@ -611,6 +673,49 @@ export default function RankingPage() {
                                 </div>
                             );
                         })}
+                    </div>
+                )}
+
+                {/* Infinite Scroll Trigger（100件まで自動） */}
+                {!loading && hasMore && page < AUTO_LOAD_MAX_PAGE && (
+                    <div ref={lastPlaceRef} className="flex justify-center py-8">
+                        {loadingMore && (
+                            <div className="flex items-center gap-2 text-slate-400">
+                                <div className="w-5 h-5 border-2 border-slate-600 border-t-yellow-500 rounded-full animate-spin" />
+                                <span>読み込み中...</span>
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {/* 100件以降は手動ボタン */}
+                {!loading && hasMore && page >= AUTO_LOAD_MAX_PAGE && (
+                    <div className="flex flex-col items-center py-8 gap-4">
+                        {loadingMore ? (
+                            <div className="flex items-center gap-2 text-slate-400">
+                                <div className="w-5 h-5 border-2 border-slate-600 border-t-yellow-500 rounded-full animate-spin" />
+                                <span>読み込み中...</span>
+                            </div>
+                        ) : (
+                            <>
+                                <p className="text-slate-500 text-sm">
+                                    {sortedPlaces.length}件を表示中
+                                </p>
+                                <button
+                                    onClick={() => setPage((prev) => prev + 1)}
+                                    className="px-6 py-3 bg-gradient-to-r from-yellow-500 to-amber-500 text-black font-bold rounded-lg hover:from-yellow-400 hover:to-amber-400 transition-all shadow-lg hover:shadow-yellow-500/25"
+                                >
+                                    さらに50件を読み込む
+                                </button>
+                            </>
+                        )}
+                    </div>
+                )}
+
+                {/* End of List */}
+                {!loading && !hasMore && sortedPlaces.length > 0 && (
+                    <div className="text-center py-8 text-slate-500 text-sm">
+                        すべてのゲームを表示しました（{sortedPlaces.length}件）
                     </div>
                 )}
             </div>

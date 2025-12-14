@@ -30,19 +30,24 @@ export default function PlaceList() {
     const [loading, setLoading] = useState(false); // To prevent double fetch
     const [initialLoading, setInitialLoading] = useState(true); // 初回ロード用
 
-    // Infinite Scroll Observer
+    // 自動読み込みの上限（4ページ = 48件）12件/ページ）
+    const AUTO_LOAD_MAX_PAGE = 4;
+
+    // Infinite Scroll Observer（上限まで自動読み込み）
     const lastPlaceElementRef = useCallback(
         (node: HTMLAnchorElement | null) => {
             if (loading) return;
+            // 上限に達したら自動読み込みを停止
+            if (page >= AUTO_LOAD_MAX_PAGE) return;
             if (observer.current) observer.current.disconnect();
             observer.current = new IntersectionObserver((entries) => {
-                if (entries[0].isIntersecting && hasMore) {
+                if (entries[0].isIntersecting && hasMore && page < AUTO_LOAD_MAX_PAGE) {
                     setPage((prevPage) => prevPage + 1);
                 }
             });
             if (node) observer.current.observe(node);
         },
-        [loading, hasMore]
+        [loading, hasMore, page]
     );
 
     useEffect(() => {
@@ -199,8 +204,8 @@ export default function PlaceList() {
                 );
             })}
 
-            {/* Loading Skeletons */}
-            {hasMore && (
+            {/* Loading Skeletons（自動読み込み中） */}
+            {hasMore && page < AUTO_LOAD_MAX_PAGE && loading && (
                 <>
                     {[...Array(4)].map((_, i) => (
                         <div key={`skeleton-${i}`} className="bg-[#1c222c] rounded-xl overflow-hidden shadow-lg animate-pulse">
@@ -216,6 +221,37 @@ export default function PlaceList() {
                         </div>
                     ))}
                 </>
+            )}
+
+            {/* 96件以降は手動ボタン */}
+            {hasMore && page >= AUTO_LOAD_MAX_PAGE && (
+                <div className="col-span-full flex flex-col items-center py-8 gap-4">
+                    {loading ? (
+                        <div className="flex items-center gap-2 text-slate-400">
+                            <div className="w-5 h-5 border-2 border-slate-600 border-t-yellow-500 rounded-full animate-spin" />
+                            <span>読み込み中...</span>
+                        </div>
+                    ) : (
+                        <>
+                            <p className="text-slate-500 text-sm">
+                                {places.length}件を表示中
+                            </p>
+                            <button
+                                onClick={() => setPage((prev) => prev + 1)}
+                                className="px-6 py-3 bg-gradient-to-r from-yellow-500 to-amber-500 text-black font-bold rounded-lg hover:from-yellow-400 hover:to-amber-400 transition-all shadow-lg hover:shadow-yellow-500/25"
+                            >
+                                さらに12件を読み込む
+                            </button>
+                        </>
+                    )}
+                </div>
+            )}
+
+            {/* End of List */}
+            {!hasMore && places.length > 0 && (
+                <div className="col-span-full text-center py-8 text-slate-500 text-sm">
+                    すべてのゲームを表示しました（{places.length}件）
+                </div>
             )}
         </div>
     );
