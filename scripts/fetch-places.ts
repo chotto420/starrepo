@@ -136,7 +136,7 @@ async function toUniverseMap(ids: readonly number[]): Promise<PlaceToUniverse> {
     const { universeId } = (await r.json()) as { universeId: number };
     out[id] = universeId;
     console.log(`🔄 ${id} → ${universeId}`);
-    await sleep(100);
+    await sleep(50);
   }
   return out;
 }
@@ -162,7 +162,7 @@ async function fetchIcons(uIds: number[]) {
     for (const ico of data) {
       if (ico.state === "Completed") out[ico.targetId] = ico.imageUrl;
     }
-    await sleep(100);
+    await sleep(50);
   }
   return out;
 }
@@ -189,7 +189,7 @@ async function fetchThumbs(uIds: number[]) {
       const pic = g.thumbnails.find(t => t.state === "Completed");
       if (pic) out[g.universeId] = pic.imageUrl;
     }
-    await sleep(100);
+    await sleep(50);
   }
   return out;
 }
@@ -215,7 +215,7 @@ async function fetchVotes(uIds: number[]) {
       up[v.id] = v.upVotes;
       down[v.id] = v.downVotes;
     }
-    await sleep(100);
+    await sleep(50);
   }
   return { up, down };
 }
@@ -224,7 +224,11 @@ async function fetchVotes(uIds: number[]) {
 // Step-3  Main 処理
 // -----------------------------------------------------------------------------
 async function run() {
-  console.log("🚀 Starting Roblox data sync...");
+  const startTime = Date.now();
+  let successCount = 0;
+  let failCount = 0;
+
+  console.log("🚀 Starting Roblox data sync...\n");
 
   /* Step A: 日次スナップショット取得（統計履歴用） */
   const snapshotOk = await takeDailySnapshot();
@@ -236,23 +240,12 @@ async function run() {
     console.log("⚠️ places テーブルが空です");
     return;
   }
-  console.log(`📋 Found ${rows.length} places to sync`);
+  console.log(`📋 Found ${rows.length} places to sync\n`);
 
-  /* 初期マップ（universe_id が入っているものはキャッシュ扱い）*/
-  const place2UniInit: PlaceToUniverse = Object.fromEntries(
+  /* Universe ID マップ作成（NULLは除外） */
+  const place2Uni: PlaceToUniverse = Object.fromEntries(
     rows.filter(r => r.universe_id).map(r => [r.place_id, r.universe_id!])
   );
-
-  const unknownIds = rows
-    .filter(r => r.universe_id == null)
-    .map(r => r.place_id);
-
-  const place2UniNew = await toUniverseMap(unknownIds);
-
-  const place2Uni: PlaceToUniverse = {
-    ...place2UniInit,
-    ...place2UniNew,
-  };
 
   /* Universe ID 一覧 */
   const uniIds = [...new Set(Object.values(place2Uni))];
@@ -278,18 +271,24 @@ async function run() {
   // -------------------------------------------------------------------------
   for (const { place_id: pId } of rows) {
     const uId = place2Uni[pId];
-    if (!uId) continue; // 取得失敗している場合はスキップ
+    if (!uId) {
+      console.warn(`⚠️ Skipped Place ${pId}: No Universe ID`);
+      failCount++;
+      continue;
+    }
 
     const gRes = await fetchRetry(
       `https://games.roblox.com/v1/games?universeIds=${uId}`
     );
     if (!gRes.ok) {
-      console.warn(`❌ games ${uId}: ${gRes.status}`);
+      console.warn(`❌ Failed: Place ${pId} (API ${gRes.status})`);
+      failCount++;
       continue;
     }
     const game = ((await gRes.json()) as GameRes).data[0];
     if (!game) {
-      console.warn(`⚠️ no game ${uId}`);
+      console.warn(`❌ Failed: Place ${pId} (No game data)`);
+      failCount++;
       continue;
     }
 
@@ -332,14 +331,29 @@ async function run() {
       { onConflict: "place_id" }
     );
 
-    error
-      ? console.error("🔥", error)
-      : console.log(`✅ ${game.name}`);
+    if (error) {
+      console.error(`❌ Failed: ${game.name} (DB Error)`);
+      failCount++;
+    } else {
+      console.log(`✅ ${game.name}`);
+      successCount++;
+    }
 
-    await sleep(100);
+    await sleep(50);
   }
 
-  console.log("🎉 Sync finished");
+  const duration = ((Date.now() - startTime) / 1000).toFixed(1);
+  const total = rows.length;
+  const successRate = ((successCount / total) * 100).toFixed(1);
+
+  console.log("\n🎉 Sync finished\n");
+  console.log("📊 SUMMARY");
+  console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━");
+  console.log(`Total:      ${total}`);
+  console.log(`✅ Success: ${successCount} (${successRate}%)`);
+  console.log(`❌ Failed:  ${failCount} (${((failCount / total) * 100).toFixed(1)}%)`);
+  console.log(`⏱️ Duration: ${duration}s`);
+  console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━");
 }
 
 run().catch(console.error);
