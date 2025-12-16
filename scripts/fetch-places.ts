@@ -332,7 +332,7 @@ async function run() {
     );
 
     if (error) {
-      console.error(`❌ Failed: ${game.name} (DB Error)`);
+      console.error(`❌ Failed: ${game.name} (DB Error):`, JSON.stringify(error));
       failCount++;
     } else {
       console.log(`✅ ${game.name}`);
