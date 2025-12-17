@@ -76,11 +76,12 @@ interface PlaceRow {
 // -----------------------------------------------------------------------------
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 
-async function fetchRetry(url: string, retry = 3) {
+async function fetchRetry(url: string, retry = 1) {
   for (let i = 0; i <= retry; i++) {
     const res = await fetch(url);
     if (res.status !== 429 || i === retry) return res;
-    await sleep(1_000 * (i + 1));
+    console.log(`⏳ 429 detected. Waiting 6 seconds before retry...`);
+    await sleep(6_000);
   }
   throw new Error("unreachable");
 }
