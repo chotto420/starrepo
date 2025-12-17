@@ -339,7 +339,7 @@ async function run() {
       successCount++;
     }
 
-    await sleep(50);
+    await sleep(100);
   }
 
   const duration = ((Date.now() - startTime) / 1000).toFixed(1);
