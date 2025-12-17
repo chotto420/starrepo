@@ -6,7 +6,7 @@ import { ChevronLeft, Clock, Star, Eye, Heart, Sparkles } from "lucide-react";
 import { getGenreName } from "@/lib/roblox";
 
 export const metadata: Metadata = {
-    title: "新着ゲーム",
+    title: "サイト新着",
     description: "StarRepoに最近登録されたRobloxゲームをチェック！新しいゲームを発見しよう。",
 };
 
@@ -109,7 +109,7 @@ export default async function NewGamesPage() {
                         <div>
                             <h1 className="text-xl md:text-2xl font-bold flex items-center gap-2">
                                 <Sparkles className="w-5 h-5 md:w-6 md:h-6 text-yellow-400" />
-                                新着ゲーム
+                                サイト新着
                             </h1>
                             <p className="text-xs md:text-sm text-slate-400 mt-1">
                                 最近StarRepoに登録されたゲーム

@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
         // メインクエリ
         let query = supabase
             .from("places")
-            .select("place_id, name, creator_name, thumbnail_url, visit_count, favorite_count, playing, genre");
+            .select("place_id, name, creator_name, thumbnail_url, visit_count, favorite_count, playing, genre, first_released_at, last_updated_at");
 
         // ジャンルフィルタ
         if (genre !== "all") {
@@ -46,6 +46,22 @@ export async function GET(request: NextRequest) {
                 break;
             case "favorites":
                 query = query.order("favorite_count", { ascending: false });
+                break;
+            case "newest":
+                query = query.gte("favorite_count", 50).order("first_released_at", { ascending: false });
+                break;
+            case "updated":
+                query = query.gte("favorite_count", 50).order("last_updated_at", { ascending: false });
+                break;
+            case "likeRatio":
+                query = query
+                    .not("like_count", "is", null)
+                    .not("dislike_count", "is", null)
+                    .gte("like_count", 5)
+                    .order("like_ratio", { ascending: false });
+                break;
+            case "favoriteRatio":
+                query = query.gte("visit_count", 1000).order("visit_count", { ascending: false });
                 break;
             case "rating":
             case "reviews":

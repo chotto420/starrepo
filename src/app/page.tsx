@@ -170,7 +170,7 @@ export default function Home() {
                         className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-yellow-500/20 to-amber-500/20 border border-yellow-500/30 rounded-full text-sm font-medium text-yellow-400 hover:from-yellow-500/30 hover:to-amber-500/30 transition-all"
                     >
                         <Sparkles className="w-4 h-4" />
-                        新着ゲーム
+                        サイト新着
                     </Link>
                     <RandomGameButton />
                     <Link

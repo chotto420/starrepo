@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { getGenreName } from "@/lib/roblox";
 import Link from "next/link";
-import { Trophy, Users, Star, Gem, Heart, ChevronLeft, Eye, MessageCircle, List, TrendingUp, Sparkles, Medal } from "lucide-react";
+import { Trophy, Users, Star, Gem, Heart, ChevronLeft, Eye, MessageCircle, List, TrendingUp, Sparkles, Medal, RefreshCw, ThumbsUp, ChevronDown, ChevronUp } from "lucide-react";
 import { RankingListSkeleton } from "@/components/Skeleton";
 
 const supabase = createClient();
@@ -23,9 +23,11 @@ type Place = {
     mylist_count?: number;
     trend_score?: number;
     genre: string | null;
+    first_released_at?: string;
+    last_updated_at?: string;
 };
 
-type RankingType = "overall" | "playing" | "favorites" | "trending" | "rating" | "reviews" | "mylist" | "hidden";
+type RankingType = "overall" | "playing" | "favorites" | "trending" | "rating" | "reviews" | "mylist" | "hidden" | "newest" | "updated" | "likeRatio" | "favoriteRatio";
 
 export default function RankingPage() {
     const [places, setPlaces] = useState<Place[]>([]);
@@ -38,6 +40,7 @@ export default function RankingPage() {
     const [genres, setGenres] = useState<Array<{ id: string; name: string }>>([]);
     const [page, setPage] = useState(1);
     const [hasMore, setHasMore] = useState(true);
+    const [isTabsExpanded, setIsTabsExpanded] = useState(false); // Mobile tabs collapse state
     const observer = useRef<IntersectionObserver | null>(null);
     const router = useRouter();
 
@@ -171,7 +174,7 @@ export default function RankingPage() {
                 }
                 query = query.in("place_id", targetPlaceIds);
             } else {
-                // Default fallback logic (overall, playing, trending, favorites)
+                // Default fallback logic (overall, playing, trending, favorites, newest, updated, likeRatio, favoriteRatio)
                 // Use default filters
                 query = query.gte("favorite_count", 50);
 
@@ -184,6 +187,24 @@ export default function RankingPage() {
                         break;
                     case "hidden":
                         query = query.lt("visit_count", 1000000).order("visit_count", { ascending: false });
+                        break;
+                    case "newest":
+                        query = query.order("first_released_at", { ascending: false });
+                        break;
+                    case "updated":
+                        query = query.order("last_updated_at", { ascending: false });
+                        break;
+                    case "likeRatio":
+                        // Filter: At least 10 total votes for reliability
+                        query = query.not("like_count", "is", null)
+                            .not("dislike_count", "is", null)
+                            .gte("like_count", 5) // At least some votes
+                            .order("like_ratio", { ascending: false });
+                        break;
+                    case "favoriteRatio":
+                        // Filter: At least 1000 visits for reliability
+                        query = query.gte("visit_count", 1000)
+                            .order("visit_count", { ascending: false }); // Fetch all, will sort by ratio in JS
                         break;
                     default:
                         // trending uses visits as base then sorts in JS
@@ -363,6 +384,20 @@ export default function RankingPage() {
                 if (isHiddenA && !isHiddenB) return -1;
                 if (!isHiddenA && isHiddenB) return 1;
                 return (b.average_rating || 0) - (a.average_rating || 0);
+            case "newest":
+                // Sort by first_released_at (newest first)
+                return 0; // Already sorted by DB query
+            case "updated":
+                // Sort by last_updated_at (most recently updated first)
+                return 0; // Already sorted by DB query
+            case "likeRatio":
+                // Sort by like_ratio (highest first)
+                return 0; // Already sorted by DB query
+            case "favoriteRatio":
+                // Calculate favorite ratio dynamically
+                const ratioA = a.visit_count > 0 ? (a.favorite_count || 0) / a.visit_count : 0;
+                const ratioB = b.visit_count > 0 ? (b.favorite_count || 0) / b.visit_count : 0;
+                return ratioB - ratioA;
             default:
                 return 0;
         }
@@ -377,11 +412,18 @@ export default function RankingPage() {
     };
 
     // --- UI Configurations ---
+    // User Journey Order: Discovery (row 1) → Evaluation (row 2)
     const robloxTabs = [
+        // Row 1: Discovery rankings
         { id: "overall", label: "総訪問数", icon: Trophy },
-        { id: "playing", label: "今プレイ中", icon: Users },
-        { id: "favorites", label: "お気に入り", icon: Heart },
         { id: "trending", label: "急上昇", icon: TrendingUp },
+        { id: "newest", label: "新作ゲーム", icon: Sparkles },
+        { id: "updated", label: "最近更新", icon: RefreshCw },
+        // Row 2: Evaluation rankings
+        { id: "playing", label: "今プレイ中", icon: Users },
+        { id: "likeRatio", label: "高評価率", icon: ThumbsUp },
+        { id: "favorites", label: "お気に入り", icon: Heart },
+        { id: "favoriteRatio", label: "お気に入り率", icon: Heart },
     ];
 
     const siteTabs = [
@@ -391,17 +433,29 @@ export default function RankingPage() {
         { id: "hidden", label: "隠れた名作", icon: Gem },
     ];
 
+    // Get current selected ranking info
+    const getCurrentRanking = () => {
+        const allTabs = [...robloxTabs, ...siteTabs];
+        return allTabs.find(tab => tab.id === rankingType) || robloxTabs[0];
+    };
+
+    const currentRanking = getCurrentRanking();
+
     // Define display configuration for each ranking type
     const getStatsDisplayConfig = (type: RankingType) => {
         const configs: Record<string, string[]> = {
-            trending: ["trend_score:accent", "playing"],
+            trending: ["trend_score:accent", "visits"],
             playing: ["playing:accent", "favorites"],
             overall: ["visits:accent", "playing"],
-            favorites: ["favorites:accent", "playing"],
+            favorites: ["favorites:accent", "visits"],
             rating: ["rating:accent", "visits"],
             reviews: ["reviews:accent", "visits"],
             mylist: ["mylist:accent", "favorites"],
             hidden: ["hidden_score:accent", "favorites"],
+            newest: ["release_date:accent", "visits"],
+            updated: ["update_date:accent", "visits"],
+            likeRatio: ["like_ratio:accent", "visits"],
+            favoriteRatio: ["favorite_ratio:accent", "visits"],
             default: ["playing:accent", "visits"]
         };
         return configs[type] || configs["default"];
@@ -425,43 +479,68 @@ export default function RankingPage() {
                     </div>
 
                     <div className="flex flex-col gap-6">
-                        {/* Tabs Container */}
-                        <div className="space-y-4">
+                        {/* Mobile: Collapsible Tabs Toggle Button */}
+                        <button
+                            onClick={() => setIsTabsExpanded(!isTabsExpanded)}
+                            className="md:hidden flex items-center justify-between px-4 py-3 bg-gradient-to-br from-slate-800 to-slate-900 rounded-lg border border-slate-700 hover:border-slate-600 transition-all"
+                        >
+                            <div className="flex items-center gap-3">
+                                <currentRanking.icon className="w-5 h-5 text-yellow-400 shrink-0" />
+                                <div className="text-left">
+                                    <div className="text-sm font-medium text-white">{currentRanking.label}</div>
+                                    <div className="text-xs text-slate-400">タップして変更</div>
+                                </div>
+                            </div>
+                            {isTabsExpanded ? (
+                                <ChevronUp className="w-5 h-5 text-slate-400" />
+                            ) : (
+                                <ChevronDown className="w-5 h-5 text-slate-400" />
+                            )}
+                        </button>
+
+                        {/* Tabs Container - Collapsible on Mobile, Always visible on Desktop */}
+                        <div className={`space-y-6 ${isTabsExpanded ? 'block' : 'hidden md:block'}`}>
                             {/* Roblox Data Tabs */}
-                            <div className="space-y-2">
-                                <span className="text-[10px] uppercase tracking-wider text-slate-500 font-bold px-1">Roblox Stats</span>
-                                <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-4 px-4 md:mx-0 md:px-0">
+                            <div className="space-y-3">
+                                <span className="text-[11px] uppercase tracking-wider text-slate-400 font-bold px-1 block">Roblox Stats</span>
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                                     {robloxTabs.map((tab) => (
                                         <button
                                             key={tab.id}
-                                            onClick={() => setRankingType(tab.id as RankingType)}
-                                            className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs md:text-sm font-medium whitespace-nowrap transition-all border ${rankingType === tab.id
-                                                ? "bg-slate-800 text-white border-slate-600 shadow-[0_0_15px_-5px_rgba(0,0,0,0.5)]"
-                                                : "bg-transparent text-slate-400 border-transparent hover:bg-slate-800/50 hover:text-slate-200"
+                                            onClick={() => {
+                                                setRankingType(tab.id as RankingType);
+                                                setIsTabsExpanded(false); // Auto-collapse on mobile after selection
+                                            }}
+                                            className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg text-xs md:text-sm font-medium transition-all border ${rankingType === tab.id
+                                                ? "bg-gradient-to-br from-slate-700 to-slate-800 text-white border-slate-500 shadow-lg shadow-slate-900/50 ring-2 ring-yellow-500/20"
+                                                : "bg-slate-900/30 text-slate-400 border-slate-800 hover:bg-slate-800/50 hover:text-slate-200 hover:border-slate-600"
                                                 }`}
                                         >
-                                            <tab.icon className={`w-3.5 h-3.5 ${rankingType === tab.id ? "text-yellow-400" : ""}`} />
-                                            {tab.label}
+                                            <tab.icon className={`w-4 h-4 shrink-0 ${rankingType === tab.id ? "text-yellow-400" : "text-slate-500"}`} />
+                                            <span className="truncate">{tab.label}</span>
                                         </button>
                                     ))}
                                 </div>
                             </div>
 
                             {/* Site Data Tabs */}
-                            <div className="space-y-2">
-                                <span className="text-[10px] uppercase tracking-wider text-slate-500 font-bold px-1">Community Stats</span>
-                                <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-4 px-4 md:mx-0 md:px-0">
+                            <div className="space-y-3">
+                                <span className="text-[11px] uppercase tracking-wider text-slate-400 font-bold px-1 block">Community Stats</span>
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                                     {siteTabs.map((tab) => (
                                         <button
                                             key={tab.id}
-                                            onClick={() => setRankingType(tab.id as RankingType)}
-                                            className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs md:text-sm font-medium whitespace-nowrap transition-all border ${rankingType === tab.id
-                                                ? "bg-slate-800 text-white border-slate-600 shadow-[0_0_15px_-5px_rgba(0,0,0,0.5)]"
-                                                : "bg-transparent text-slate-400 border-transparent hover:bg-slate-800/50 hover:text-slate-200"
+                                            onClick={() => {
+                                                setRankingType(tab.id as RankingType);
+                                                setIsTabsExpanded(false); // Auto-collapse on mobile after selection
+                                            }}
+                                            className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg text-xs md:text-sm font-medium transition-all border ${rankingType === tab.id
+                                                ? "bg-gradient-to-br from-slate-700 to-slate-800 text-white border-slate-500 shadow-lg shadow-slate-900/50 ring-2 ring-yellow-500/20"
+                                                : "bg-slate-900/30 text-slate-400 border-slate-800 hover:bg-slate-800/50 hover:text-slate-200 hover:border-slate-600"
                                                 }`}
                                         >
-                                            <tab.icon className={`w-3.5 h-3.5 ${rankingType === tab.id ? "text-yellow-400" : ""}`} />
-                                            {tab.label}
+                                            <tab.icon className={`w-4 h-4 shrink-0 ${rankingType === tab.id ? "text-yellow-400" : "text-slate-500"}`} />
+                                            <span className="truncate">{tab.label}</span>
                                         </button>
                                     ))}
                                 </div>
@@ -627,7 +706,7 @@ export default function RankingPage() {
 
                                                 if (key === "visits") {
                                                     return (
-                                                        <div key={key} className={`flex items-center gap-1 hidden sm:flex ${isAccent ? "text-blue-200 font-bold" : "text-slate-500"}`}>
+                                                        <div key={key} className={`flex items-center gap-1 ${isAccent ? "" : "hidden sm:flex"} ${isAccent ? "text-blue-400 font-bold" : "text-slate-500"}`}>
                                                             <Eye className={`w-3.5 h-3.5 ${isAccent ? "text-blue-400" : "text-slate-600"}`} />
                                                             <span>{formatCompactNumber(place.visit_count)}</span>
                                                         </div>
@@ -636,7 +715,7 @@ export default function RankingPage() {
 
                                                 if (key === "favorites") {
                                                     return (
-                                                        <div key={key} className={`flex items-center gap-1 hidden sm:flex ${isAccent ? "text-pink-400 font-bold" : "text-slate-500"}`}>
+                                                        <div key={key} className={`flex items-center gap-1 ${isAccent ? "" : "hidden sm:flex"} ${isAccent ? "text-pink-400 font-bold" : "text-slate-500"}`}>
                                                             <Heart className={`w-3.5 h-3.5 ${isAccent ? "fill-pink-400 text-pink-400" : "text-slate-600"}`} />
                                                             <span>{formatCompactNumber(place.favorite_count)}</span>
                                                         </div>
@@ -657,6 +736,52 @@ export default function RankingPage() {
                                                         <div key={key} className={`flex items-center gap-1 ${isAccent ? "text-purple-400 font-bold" : "text-slate-500"}`}>
                                                             <List className="w-3.5 h-3.5" />
                                                             <span>{place.mylist_count}</span>
+                                                        </div>
+                                                    );
+                                                }
+
+                                                if (key === "like_ratio" && rankingType === "likeRatio") {
+                                                    // Display like_ratio as percentage
+                                                    const ratio = (place as any).like_ratio || 0;
+                                                    return (
+                                                        <div key={key} className={`flex items-center gap-1 ${isAccent ? "text-emerald-400 font-bold" : "text-slate-500"}`}>
+                                                            <ThumbsUp className="w-3.5 h-3.5" />
+                                                            <span>{(ratio * 100).toFixed(1)}%</span>
+                                                        </div>
+                                                    );
+                                                }
+
+                                                if (key === "favorite_ratio" && rankingType === "favoriteRatio") {
+                                                    // Calculate and display favorite ratio as percentage
+                                                    const ratio = place.visit_count > 0 ? (place.favorite_count / place.visit_count) : 0;
+                                                    return (
+                                                        <div key={key} className={`flex items-center gap-1 ${isAccent ? "text-pink-400 font-bold" : "text-slate-500"}`}>
+                                                            <Heart className="w-3.5 h-3.5 fill-pink-400" />
+                                                            <span>{(ratio * 100).toFixed(2)}%</span>
+                                                        </div>
+                                                    );
+                                                }
+
+                                                if (key === "release_date" && rankingType === "newest" && place.first_released_at) {
+                                                    // Display release date
+                                                    const date = new Date(place.first_released_at);
+                                                    const formatted = `${date.getFullYear()}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getDate().toString().padStart(2, '0')}`;
+                                                    return (
+                                                        <div key={key} className={`flex items-center gap-1 ${isAccent ? "text-blue-400 font-bold" : "text-slate-500"}`}>
+                                                            <Sparkles className="w-3.5 h-3.5" />
+                                                            <span>{formatted}</span>
+                                                        </div>
+                                                    );
+                                                }
+
+                                                if (key === "update_date" && rankingType === "updated" && place.last_updated_at) {
+                                                    // Display update date
+                                                    const date = new Date(place.last_updated_at);
+                                                    const formatted = `${date.getFullYear()}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getDate().toString().padStart(2, '0')}`;
+                                                    return (
+                                                        <div key={key} className={`flex items-center gap-1 ${isAccent ? "text-cyan-400 font-bold" : "text-slate-500"}`}>
+                                                            <RefreshCw className="w-3.5 h-3.5" />
+                                                            <span>{formatted}</span>
                                                         </div>
                                                     );
                                                 }
