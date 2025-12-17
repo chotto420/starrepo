@@ -162,7 +162,7 @@ async function fetchIcons(uIds: number[]) {
     for (const ico of data) {
       if (ico.state === "Completed") out[ico.targetId] = ico.imageUrl;
     }
-    await sleep(50);
+    await sleep(100);
   }
   return out;
 }
@@ -189,7 +189,7 @@ async function fetchThumbs(uIds: number[]) {
       const pic = g.thumbnails.find(t => t.state === "Completed");
       if (pic) out[g.universeId] = pic.imageUrl;
     }
-    await sleep(50);
+    await sleep(100);
   }
   return out;
 }
@@ -215,7 +215,7 @@ async function fetchVotes(uIds: number[]) {
       up[v.id] = v.upVotes;
       down[v.id] = v.downVotes;
     }
-    await sleep(50);
+    await sleep(100);
   }
   return { up, down };
 }
