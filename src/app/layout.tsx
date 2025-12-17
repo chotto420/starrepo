@@ -52,8 +52,12 @@ export const metadata: Metadata = {
         follow: true,
     },
     icons: {
-        icon: "/images/logo/logo_icon_transparent.png",
-        apple: "/images/logo/logo_icon_transparent.png",
+        icon: [
+            { url: '/favicon.png', type: 'image/png' },
+            { url: '/images/logo/logo_icon_transparent.png', sizes: 'any' },
+        ],
+        apple: '/images/logo/logo_icon_transparent.png',
+        shortcut: '/favicon.png',
     },
     alternates: {
         canonical: BASE_URL,
