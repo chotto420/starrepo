@@ -82,9 +82,21 @@ export default function ProfileHeader({ userEmail, isAdmin, initialProfile }: Pr
         }
     };
 
-    const displayName = loading ? "" : (profile?.username || userEmail);
+    // メールアドレスをマスク処理する関数
+    const maskEmail = (email: string) => {
+        const [localPart, domain] = email.split('@');
+        if (localPart.length <= 2) {
+            return `${localPart[0]}***@${domain}`;
+        }
+        const visibleChars = Math.min(2, Math.floor(localPart.length / 3));
+        return `${localPart.substring(0, visibleChars)}***@${domain}`;
+    };
+
+    const displayName = loading ? "" : (profile?.username || "名無しのNoob");
     const avatarUrl = profile?.avatar_url;
     const bio = profile?.bio;
+    const showEmail = !profile?.username; // ユーザー名未設定時のみメールアドレスを表示
+    const maskedEmail = maskEmail(userEmail);
 
     return (
         <>
@@ -111,7 +123,11 @@ export default function ProfileHeader({ userEmail, isAdmin, initialProfile }: Pr
                                 ) : (
                                     <h1 className="text-3xl font-bold text-white mb-1">{displayName}</h1>
                                 )}
-                                <p className="text-slate-500 text-sm mb-2">{userEmail}</p>
+                                {showEmail && (
+                                    <p className="text-slate-500 text-xs mb-2">
+                                        メールアドレス: {maskedEmail}
+                                    </p>
+                                )}
                                 {bio && <p className="text-slate-300 max-w-2xl leading-relaxed">{bio}</p>}
                             </div>
                         </div>
