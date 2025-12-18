@@ -259,7 +259,12 @@ export default async function PlacePage({ params }: { params: Promise<{ id: stri
               <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-1 sm:mb-2 leading-tight">{place.name}</h1>
               <p className="text-slate-400 font-medium mb-3 sm:mb-4 flex items-center gap-2 text-sm sm:text-base">
                 <span className="text-slate-500">by</span>
-                <span className="text-slate-300 hover:text-white transition-colors cursor-pointer">{place.creator_name}</span>
+                <Link
+                  href={`/search?q=${encodeURIComponent(place.creator_name)}`}
+                  className="text-slate-300 hover:text-white transition-colors underline decoration-slate-600 hover:decoration-white"
+                >
+                  {place.creator_name}
+                </Link>
               </p>
 
               <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-4 sm:mb-6 bg-[#0B0E14] p-2 sm:p-4 rounded-lg border border-slate-800/50">
