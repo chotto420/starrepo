@@ -461,6 +461,21 @@ export default function RankingPage() {
         return configs[type] || configs["default"];
     };
 
+    // Handle load more with scroll to new content
+    const handleLoadMore = () => {
+        const currentItemCount = sortedPlaces.length;
+        setPage((prev) => prev + 1);
+
+        // After rendering, scroll to the first new item
+        setTimeout(() => {
+            const items = document.querySelectorAll('[data-ranking-item]');
+            const targetItem = items[currentItemCount]; // Next item (51st, 101st, etc.)
+            if (targetItem) {
+                targetItem.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }, 150);
+    };
+
     return (
         <main className="min-h-screen bg-[#0B0E14] text-white pb-20">
             {/* Header */}
@@ -621,6 +636,7 @@ export default function RankingPage() {
                             return (
                                 <div
                                     key={place.place_id}
+                                    data-ranking-item
                                     onClick={() => router.push(`/place/${place.place_id}`)}
                                     className={`group cursor-pointer relative bg-[#151921]/50 hover:bg-[#1A1F29] rounded-xl p-3 md:p-4 border transition-all duration-300 flex items-center gap-3 sm:gap-5 ${isTop3
                                         ? "border-yellow-500/20 shadow-[0_0_20px_-10px_rgba(234,179,8,0.1)] hover:shadow-[0_0_25px_-10px_rgba(234,179,8,0.2)]"
@@ -827,7 +843,7 @@ export default function RankingPage() {
                                     {sortedPlaces.length}件を表示中
                                 </p>
                                 <button
-                                    onClick={() => setPage((prev) => prev + 1)}
+                                    onClick={handleLoadMore}
                                     className="px-6 py-3 bg-gradient-to-r from-yellow-500 to-amber-500 text-black font-bold rounded-lg hover:from-yellow-400 hover:to-amber-400 transition-all shadow-lg hover:shadow-yellow-500/25"
                                 >
                                     さらに50件を読み込む
