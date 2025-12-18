@@ -25,6 +25,9 @@ type Place = {
     genre: string | null;
     first_released_at?: string;
     last_updated_at?: string;
+    like_count?: number;
+    dislike_count?: number;
+    like_ratio?: number;
 };
 
 type RankingType = "overall" | "playing" | "favorites" | "trending" | "rating" | "reviews" | "mylist" | "hidden" | "newest" | "updated" | "likeRatio" | "favoriteRatio";
@@ -758,7 +761,14 @@ export default function RankingPage() {
 
                                                 if (key === "like_ratio" && rankingType === "likeRatio") {
                                                     // Display like_ratio as percentage
-                                                    const ratio = (place as any).like_ratio || 0;
+                                                    // If like_ratio is null, calculate from like_count and dislike_count
+                                                    let ratio = place.like_ratio;
+                                                    if (ratio === null || ratio === undefined) {
+                                                        const likeCount = place.like_count || 0;
+                                                        const dislikeCount = place.dislike_count || 0;
+                                                        const total = likeCount + dislikeCount;
+                                                        ratio = total > 0 ? likeCount / total : 0;
+                                                    }
                                                     return (
                                                         <div key={key} className={`flex items-center gap-1 ${isAccent ? "text-emerald-400 font-bold" : "text-slate-500"}`}>
                                                             <ThumbsUp className="w-3.5 h-3.5" />
