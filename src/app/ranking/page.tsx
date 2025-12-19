@@ -198,11 +198,10 @@ export default function RankingPage() {
                         query = query.order("last_updated_at", { ascending: false });
                         break;
                     case "likeRatio":
-                        // Filter: At least 10 total votes for reliability
+                        // Don't order here - will fetch all and sort in JS
                         query = query.not("like_count", "is", null)
                             .not("dislike_count", "is", null)
-                            .gte("like_count", 5) // At least some votes
-                            .order("like_ratio", { ascending: false });
+                            .gte("like_count", 5); // At least some votes
                         break;
                     case "favoriteRatio":
                         // Filter: At least 1000 visits for reliability
@@ -214,7 +213,8 @@ export default function RankingPage() {
                         // overall uses visits
                         query = query.order("visit_count", { ascending: false });
                 }
-                query = query.limit(50);
+                // For likeRatio, fetch more data (500 max); others use 50
+                query = query.limit(rankingType === "likeRatio" ? 500 : 50);
             }
 
             if (selectedGenre !== "all") {
@@ -293,8 +293,18 @@ export default function RankingPage() {
                     ? ((currentVisits - yesterdayVisits) / yesterdayVisits) * 100
                     : 0;
 
+                // Calculate like_ratio if null
+                let likeRatio = p.like_ratio;
+                if (likeRatio === null || likeRatio === undefined) {
+                    const likeCount = p.like_count || 0;
+                    const dislikeCount = p.dislike_count || 0;
+                    const total = likeCount + dislikeCount;
+                    likeRatio = total > 0 ? likeCount / total : 0;
+                }
+
                 return {
                     ...p,
+                    like_ratio: likeRatio,
                     average_rating: avg,
                     review_count: count,
                     mylist_count: mylistCount,
@@ -302,9 +312,24 @@ export default function RankingPage() {
                 };
             });
 
-            setPlaces(withRatings);
+            // For likeRatio, sort and paginate
+            if (rankingType === "likeRatio") {
+                // Sort by like_ratio desc, then place_id asc
+                withRatings.sort((a: Place, b: Place) => {
+                    const diff = (b.like_ratio || 0) - (a.like_ratio || 0);
+                    if (Math.abs(diff) > 0.0001) return diff;
+                    return a.place_id - b.place_id;
+                });
+                // Take only first 50 for initial load
+                const paginatedPlaces = withRatings.slice(0, 50);
+                setPlaces(paginatedPlaces);
+                setHasMore(withRatings.length > 50);
+            } else {
+                setPlaces(withRatings);
+                setHasMore(withRatings.length >= 50); // 50件取得時は続きがある可能性
+            }
+
             setLoading(false);
-            setHasMore(withRatings.length >= 50); // 50件取得時は続きがある可能性
         }
 
         fetchRanking();

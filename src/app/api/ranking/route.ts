@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
         // メインクエリ
         let query = supabase
             .from("places")
-            .select("place_id, name, creator_name, thumbnail_url, visit_count, favorite_count, playing, genre, first_released_at, last_updated_at");
+            .select("place_id, name, creator_name, thumbnail_url, visit_count, favorite_count, playing, genre, first_released_at, last_updated_at, like_count, dislike_count, like_ratio");
 
         // ジャンルフィルタ
         if (genre !== "all") {
@@ -54,11 +54,11 @@ export async function GET(request: NextRequest) {
                 query = query.gte("favorite_count", 50).order("last_updated_at", { ascending: false });
                 break;
             case "likeRatio":
+                // Don't order here - will fetch all and sort in JS
                 query = query
                     .not("like_count", "is", null)
                     .not("dislike_count", "is", null)
-                    .gte("like_count", 5)
-                    .order("like_ratio", { ascending: false });
+                    .gte("like_count", 5);
                 break;
             case "favoriteRatio":
                 query = query.gte("visit_count", 1000).order("visit_count", { ascending: false });
@@ -71,6 +71,51 @@ export async function GET(request: NextRequest) {
                 break;
             default:
                 query = query.order("visit_count", { ascending: false });
+        }
+
+        // For likeRatio, handle separately
+        if (type === "likeRatio") {
+            // Fetch all data (max 500)
+            const { data: allPlaces, error: likeError } = await query.limit(500);
+
+            if (likeError) {
+                return NextResponse.json({ error: likeError.message }, { status: 500 });
+            }
+
+            // Calculate like_ratio and add stats
+            const placesWithRatio = allPlaces?.map((place) => {
+                let ratio = place.like_ratio;
+                if (ratio === null || ratio === undefined) {
+                    const likeCount = place.like_count || 0;
+                    const dislikeCount = place.dislike_count || 0;
+                    const total = likeCount + dislikeCount;
+                    ratio = total > 0 ? likeCount / total : 0;
+                }
+                return {
+                    ...place,
+                    like_ratio: ratio,
+                    average_rating: ratings.get(place.place_id)
+                        ? ratings.get(place.place_id)!.sum / ratings.get(place.place_id)!.count
+                        : null,
+                    review_count: counts.get(place.place_id) || 0,
+                };
+            });
+
+            // Sort by like_ratio desc, then place_id asc for stability
+            placesWithRatio?.sort((a, b) => {
+                const diff = b.like_ratio - a.like_ratio;
+                if (Math.abs(diff) > 0.0001) return diff;
+                return a.place_id - b.place_id;
+            });
+
+            // Paginate
+            const paginatedPlaces = placesWithRatio?.slice(offset, offset + limit);
+
+            return NextResponse.json({
+                data: paginatedPlaces,
+                page,
+                hasMore: placesWithRatio && placesWithRatio.length > offset + limit,
+            });
         }
 
         query = query.range(offset, offset + limit - 1);
