@@ -87,258 +87,41 @@ export default function RankingPage() {
         fetchGenres();
     }, []);
 
+    // 初回データ取得（API経由に統一）
     useEffect(() => {
         async function fetchRanking() {
             setLoading(true);
+            try {
+                const res = await fetch(
+                    `/api/ranking?type=${rankingType}&genre=${selectedGenre}&page=1&limit=50`
+                );
+                const json = await res.json();
 
-            // Place ids for specific fetching
-            let targetPlaceIds: number[] | null = null;
-            let overrideMaps: {
-                reviewCount?: Map<number, number>;
-                avgRating?: Map<number, number>;
-                mylistCount?: Map<number, number>;
-            } = {};
-
-            // For dynamic rankings (mylist, reviews, rating), we need to aggregate first
-            // Note: This approach scales well for small-medium apps. 
-            // For large scale, we should maintain counter columns in 'places' table via triggers.
-            if (rankingType === "mylist") {
-                const { data: allMylists } = await supabase
-                    .from("user_mylist")
-                    .select("place_id");
-
-                if (allMylists) {
-                    const counts = new Map<number, number>();
-                    allMylists.forEach((item: { place_id: number }) => {
-                        counts.set(item.place_id, (counts.get(item.place_id) || 0) + 1);
-                    });
-
-                    // Sort by count descending and take top 100
-                    targetPlaceIds = Array.from(counts.entries())
-                        .sort((a, b) => b[1] - a[1])
-                        .slice(0, 100)
-                        .map(entry => entry[0]);
-
-                    overrideMaps.mylistCount = counts;
-                }
-            } else if (rankingType === "reviews" || rankingType === "rating") {
-                const { data: allReviews } = await supabase
-                    .from("reviews")
-                    .select("place_id, rating");
-
-                if (allReviews) {
-                    const counts = new Map<number, number>(); // Review count
-                    const ratings = new Map<number, { sum: number; count: number }>(); // For avg
-
-                    allReviews.forEach((r: { place_id: number; rating: number }) => {
-                        // Count
-                        counts.set(r.place_id, (counts.get(r.place_id) || 0) + 1);
-                        // Rating
-                        const current = ratings.get(r.place_id) || { sum: 0, count: 0 };
-                        ratings.set(r.place_id, { sum: current.sum + r.rating, count: current.count + 1 });
-                    });
-
-                    // Sort logic
-                    if (rankingType === "reviews") {
-                        targetPlaceIds = Array.from(counts.entries())
-                            .sort((a, b) => b[1] - a[1])
-                            .slice(0, 100)
-                            .map(entry => entry[0]);
-                    } else {
-                        // rating: filter < 3 reviews
-                        targetPlaceIds = Array.from(ratings.entries())
-                            .filter(entry => entry[1].count >= 3)
-                            .map(entry => [entry[0], entry[1].sum / entry[1].count] as [number, number])
-                            .sort((a, b) => b[1] - a[1])
-                            .slice(0, 100)
-                            .map(entry => entry[0]);
-                    }
-
-                    overrideMaps.reviewCount = counts;
-                    overrideMaps.avgRating = new Map(
-                        Array.from(ratings.entries()).map(([k, v]) => [k, v.sum / v.count])
-                    );
-                }
-            }
-
-            // Build Main Query
-            let query = supabase
-                .from("places")
-                .select("*");
-
-            // Apply filters
-            if (targetPlaceIds !== null) {
-                // If we found specific IDs from secondary tables, fetch only those
-                if (targetPlaceIds.length === 0) {
-                    // No data found for this ranking
+                if (json.data) {
+                    setPlaces(json.data);
+                    setHasMore(json.hasMore);
+                } else {
                     setPlaces([]);
-                    setLoading(false);
-                    return;
+                    setHasMore(false);
                 }
-                query = query.in("place_id", targetPlaceIds);
-            } else {
-                // Default fallback logic (overall, playing, trending, favorites, newest, updated, likeRatio, favoriteRatio)
-                // Use default filters
-                query = query.gte("favorite_count", 50);
-
-                switch (rankingType) {
-                    case "playing":
-                        query = query.order("playing", { ascending: false });
-                        break;
-                    case "favorites":
-                        query = query.order("favorite_count", { ascending: false });
-                        break;
-                    case "hidden":
-                        query = query.lt("visit_count", 1000000).order("visit_count", { ascending: false });
-                        break;
-                    case "newest":
-                        query = query.order("first_released_at", { ascending: false });
-                        break;
-                    case "updated":
-                        query = query.order("last_updated_at", { ascending: false });
-                        break;
-                    case "likeRatio":
-                        // Don't order here - will fetch all and sort in JS
-                        query = query.not("like_count", "is", null)
-                            .not("dislike_count", "is", null)
-                            .gte("like_count", 5); // At least some votes
-                        break;
-                    case "favoriteRatio":
-                        // Filter: At least 1000 visits for reliability
-                        query = query.gte("visit_count", 1000)
-                            .order("visit_count", { ascending: false }); // Fetch all, will sort by ratio in JS
-                        break;
-                    default:
-                        // trending uses visits as base then sorts in JS
-                        // overall uses visits
-                        query = query.order("visit_count", { ascending: false });
-                }
-                // For likeRatio, fetch more data (500 max); others use 50
-                query = query.limit(rankingType === "likeRatio" ? 500 : 50);
+            } catch (error) {
+                console.error('Failed to fetch ranking:', error);
+                setPlaces([]);
+                setHasMore(false);
             }
-
-            if (selectedGenre !== "all") {
-                query = query.eq("genre", selectedGenre);
-            }
-
-            const { data: placeData } = await query;
-
-            if (!placeData) {
-                setLoading(false);
-                return;
-            }
-
-            const fetchIds = placeData.map((p: Place) => p.place_id);
-
-            // --- Secondary Data Fetching (Stats) ---
-            // Even if we already have some stats from step 1 (overrideMaps), we might need others
-            // e.g. trending needs history, all need mylists/reviews for display
-
-            const yesterday = new Date();
-            yesterday.setDate(yesterday.getDate() - 1);
-            const yesterdayStr = yesterday.toISOString().split('T')[0];
-
-            const [reviewsResult, mylistResult, historyResult] = await Promise.all([
-                supabase.from("reviews").select("place_id, rating").in("place_id", fetchIds),
-                supabase.from("user_mylist").select("place_id").in("place_id", fetchIds),
-                supabase.from("place_stats_history").select("place_id, visit_count").eq("recorded_at", yesterdayStr).in("place_id", fetchIds)
-            ]);
-
-            const allReviews = reviewsResult.data;
-            const mylistData = mylistResult.data;
-            const historyData = historyResult.data;
-
-            // Compute Stats
-            // (Use overrideMaps if available for primary sorting metric to ensure consistency, 
-            // but refresh other metrics)
-
-            const reviewsDisplayMap = new Map<number, { count: number; sum: number }>();
-            if (allReviews) {
-                for (const r of allReviews) {
-                    const current = reviewsDisplayMap.get(r.place_id) || { count: 0, sum: 0 };
-                    reviewsDisplayMap.set(r.place_id, {
-                        count: current.count + 1,
-                        sum: current.sum + r.rating,
-                    });
-                }
-            }
-
-            const mylistDisplayMap = new Map<number, number>();
-            if (mylistData) {
-                for (const m of mylistData) {
-                    mylistDisplayMap.set(m.place_id, (mylistDisplayMap.get(m.place_id) || 0) + 1);
-                }
-            }
-
-            const historyMap = new Map<number, number>();
-            if (historyData) {
-                for (const h of historyData) {
-                    historyMap.set(h.place_id, h.visit_count || 0);
-                }
-            }
-
-            // Merge Data
-            const withRatings = placeData.map((p: Place) => {
-                const reviewStats = reviewsDisplayMap.get(p.place_id);
-                // Prefer fetching fresh stats, but logic flow ensures consistency
-
-                const count = reviewStats?.count || 0;
-                const avg = count > 0 ? (reviewStats!.sum / count) : 0;
-                const mylistCount = mylistDisplayMap.get(p.place_id) || 0;
-
-                // Calculate trend
-                const yesterdayVisits = historyMap.get(p.place_id) || 0;
-                const currentVisits = p.visit_count || 0;
-                const trendScore = yesterdayVisits > 0
-                    ? ((currentVisits - yesterdayVisits) / yesterdayVisits) * 100
-                    : 0;
-
-                // Calculate like_ratio if null
-                let likeRatio = p.like_ratio;
-                if (likeRatio === null || likeRatio === undefined) {
-                    const likeCount = p.like_count || 0;
-                    const dislikeCount = p.dislike_count || 0;
-                    const total = likeCount + dislikeCount;
-                    likeRatio = total > 0 ? likeCount / total : 0;
-                }
-
-                return {
-                    ...p,
-                    like_ratio: likeRatio,
-                    average_rating: avg,
-                    review_count: count,
-                    mylist_count: mylistCount,
-                    trend_score: trendScore,
-                };
-            });
-
-            // For likeRatio, sort and paginate
-            if (rankingType === "likeRatio") {
-                // Sort by like_ratio desc, then place_id asc
-                withRatings.sort((a: Place, b: Place) => {
-                    const diff = (b.like_ratio || 0) - (a.like_ratio || 0);
-                    if (Math.abs(diff) > 0.0001) return diff;
-                    return a.place_id - b.place_id;
-                });
-                // Take only first 50 for initial load
-                const paginatedPlaces = withRatings.slice(0, 50);
-                setPlaces(paginatedPlaces);
-                setHasMore(withRatings.length > 50);
-            } else {
-                setPlaces(withRatings);
-                setHasMore(withRatings.length >= 50); // 50件取得時は続きがある可能性
-            }
-
             setLoading(false);
         }
 
         fetchRanking();
     }, [rankingType, selectedGenre]);
 
-    // フィルタ変更時にページをリセット
+    // フィルタ変更時にページをリセット & トップにスクロール & データクリア
     useEffect(() => {
         setPage(1);
         setHasMore(true);
+        setPlaces([]); // 古いデータをクリア
+        // ページトップにスクロール
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     }, [rankingType, selectedGenre]);
 
     // 追加データを読み込む（ページ2以降）
@@ -370,7 +153,7 @@ export default function RankingPage() {
         }
 
         loadMore();
-    }, [page, rankingType, selectedGenre]);
+    }, [page]); // rankingType, selectedGenreは削除（別のuseEffectでpage=1にリセットされるため）
 
     // Apply client-side filters for rating and reviews
     const filteredPlaces = [...places].filter(place => {

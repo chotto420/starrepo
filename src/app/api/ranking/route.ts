@@ -1,158 +1,77 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { RankingProcessor, validateRankingRequest } from "@/lib/ranking";
+import type { RankingType } from "@/lib/ranking";
 
 // ISR: 5分間キャッシュ
 export const revalidate = 300;
 
+/**
+ * ランキングAPIエンドポイント
+ * RankingProcessorを使用してランキングデータを取得
+ */
 export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
+
+    // クエリパラメータの取得
     const type = searchParams.get("type") || "overall";
     const genre = searchParams.get("genre") || "all";
-    const page = parseInt(searchParams.get("page") || "1");
-    const limit = parseInt(searchParams.get("limit") || "20");
+    const pageParam = searchParams.get("page");
+    const limitParam = searchParams.get("limit");
+
+    // 数値変換（デフォルト値あり）
+    const page = pageParam ? parseInt(pageParam, 10) : 1;
+    const limit = limitParam ? parseInt(limitParam, 10) : 50;
+
+    // リクエストオブジェクトの構築
+    const rankingRequest = {
+        type: type as RankingType,
+        genre,
+        page,
+        limit
+    };
 
     try {
+        // 入力検証
+        const validation = validateRankingRequest(rankingRequest);
+        if (!validation.valid) {
+            return NextResponse.json(
+                { error: validation.error },
+                { status: 400 }
+            );
+        }
+
+        // Supabaseクライアントの作成
         const supabase = await createClient();
-        const offset = (page - 1) * limit;
 
-        // レビュー統計を取得
-        const { data: reviewData } = await supabase
-            .from("reviews")
-            .select("place_id, rating");
+        // RankingProcessorを使用してランキングデータを取得
+        const processor = new RankingProcessor(supabase);
+        const result = await processor.getRanking(rankingRequest);
 
-        // 評価とレビュー数を計算
-        const counts = new Map<number, number>();
-        const ratings = new Map<number, { sum: number; count: number }>();
-        reviewData?.forEach((r: { place_id: number; rating: number }) => {
-            counts.set(r.place_id, (counts.get(r.place_id) || 0) + 1);
-            const curr = ratings.get(r.place_id) || { sum: 0, count: 0 };
-            ratings.set(r.place_id, { sum: curr.sum + r.rating, count: curr.count + 1 });
-        });
-
-        // メインクエリ
-        let query = supabase
-            .from("places")
-            .select("place_id, name, creator_name, thumbnail_url, visit_count, favorite_count, playing, genre, first_released_at, last_updated_at, like_count, dislike_count, like_ratio");
-
-        // ジャンルフィルタ
-        if (genre !== "all") {
-            query = query.eq("genre", genre);
-        }
-
-        // ソートと取得
-        switch (type) {
-            case "playing":
-                query = query.order("playing", { ascending: false });
-                break;
-            case "favorites":
-                query = query.order("favorite_count", { ascending: false });
-                break;
-            case "newest":
-                query = query.gte("favorite_count", 50).order("first_released_at", { ascending: false });
-                break;
-            case "updated":
-                query = query.gte("favorite_count", 50).order("last_updated_at", { ascending: false });
-                break;
-            case "likeRatio":
-                // Don't order here - will fetch all and sort in JS
-                query = query
-                    .not("like_count", "is", null)
-                    .not("dislike_count", "is", null)
-                    .gte("like_count", 5);
-                break;
-            case "favoriteRatio":
-                query = query.gte("visit_count", 1000).order("visit_count", { ascending: false });
-                break;
-            case "rating":
-            case "reviews":
-            case "mylist":
-                // これらは後でJSでソート
-                query = query.gte("favorite_count", 50);
-                break;
-            default:
-                query = query.order("visit_count", { ascending: false });
-        }
-
-        // For likeRatio, handle separately
-        if (type === "likeRatio") {
-            // Fetch all data (max 500)
-            const { data: allPlaces, error: likeError } = await query.limit(500);
-
-            if (likeError) {
-                return NextResponse.json({ error: likeError.message }, { status: 500 });
-            }
-
-            // Calculate like_ratio and add stats
-            const placesWithRatio = allPlaces?.map((place) => {
-                let ratio = place.like_ratio;
-                if (ratio === null || ratio === undefined) {
-                    const likeCount = place.like_count || 0;
-                    const dislikeCount = place.dislike_count || 0;
-                    const total = likeCount + dislikeCount;
-                    ratio = total > 0 ? likeCount / total : 0;
-                }
-                return {
-                    ...place,
-                    like_ratio: ratio,
-                    average_rating: ratings.get(place.place_id)
-                        ? ratings.get(place.place_id)!.sum / ratings.get(place.place_id)!.count
-                        : null,
-                    review_count: counts.get(place.place_id) || 0,
-                };
-            });
-
-            // Sort by like_ratio desc, then place_id asc for stability
-            placesWithRatio?.sort((a, b) => {
-                const diff = b.like_ratio - a.like_ratio;
-                if (Math.abs(diff) > 0.0001) return diff;
-                return a.place_id - b.place_id;
-            });
-
-            // Paginate
-            const paginatedPlaces = placesWithRatio?.slice(offset, offset + limit);
-
-            return NextResponse.json({
-                data: paginatedPlaces,
-                page,
-                hasMore: placesWithRatio && placesWithRatio.length > offset + limit,
-            });
-        }
-
-        query = query.range(offset, offset + limit - 1);
-
-        const { data: places, error } = await query;
-
-        if (error) {
-            return NextResponse.json({ error: error.message }, { status: 500 });
-        }
-
-        // 評価とレビュー数を付加
-        const placesWithStats = places?.map((place) => ({
-            ...place,
-            average_rating: ratings.get(place.place_id)
-                ? ratings.get(place.place_id)!.sum / ratings.get(place.place_id)!.count
-                : null,
-            review_count: counts.get(place.place_id) || 0,
-        }));
-
-        // rating/reviewsの場合はソート
-        if (type === "rating") {
-            placesWithStats?.sort((a, b) => {
-                if ((a.review_count || 0) < 3) return 1;
-                if ((b.review_count || 0) < 3) return -1;
-                return (b.average_rating || 0) - (a.average_rating || 0);
-            });
-        } else if (type === "reviews") {
-            placesWithStats?.sort((a, b) => (b.review_count || 0) - (a.review_count || 0));
-        }
-
+        // レスポンスを返却
         return NextResponse.json({
-            data: placesWithStats,
-            page,
-            hasMore: places?.length === limit,
+            data: result.data,
+            page: result.page,
+            hasMore: result.hasMore,
+            totalCount: result.totalCount
         });
+
     } catch (error) {
         console.error("Ranking API error:", error);
-        return NextResponse.json({ error: "Server error" }, { status: 500 });
+
+        // エラーメッセージの判定
+        const errorMessage = error instanceof Error
+            ? error.message
+            : "Server error";
+
+        // バリデーションエラーとDBエラーを区別
+        const statusCode = errorMessage.includes("Invalid")
+            ? 400
+            : 500;
+
+        return NextResponse.json(
+            { error: errorMessage },
+            { status: statusCode }
+        );
     }
 }
