@@ -83,7 +83,7 @@ export default function InstallPrompt() {
 
             {/* iOS向けのインストール手順モーダル */}
             {showIOSPrompt && (
-                <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in">
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in">
                     <div className="bg-[#1A1D24] border border-slate-700 w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl relative">
                         <button
                             onClick={() => setShowIOSPrompt(false)}
@@ -131,8 +131,7 @@ export default function InstallPrompt() {
                             </button>
                         </div>
 
-                        {/* 吹き出しの矢印（下部メニューの共有ボタンを指すイメージ） */}
-                        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-full w-4 h-4 bg-[#1A1D24] rotate-45 border-r border-b border-slate-700 hidden sm:hidden"></div>
+                        {/* 吹き出しの矢印は削除（画面中央表示のため） */}
                     </div>
                 </div>
             )}
