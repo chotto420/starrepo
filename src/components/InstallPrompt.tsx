@@ -83,45 +83,44 @@ export default function InstallPrompt() {
 
             {/* iOS向けのインストール手順モーダル */}
             {showIOSPrompt && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in">
-                    <div className="bg-[#1A1D24] border border-slate-700 w-full max-w-sm rounded-2xl shadow-2xl relative max-h-[90vh] flex flex-col">
-                        <div className="p-5 overflow-y-auto">
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in supports-[height:100dvh]:h-[100dvh]">
+                    <div className="bg-[#1A1D24] border border-slate-700 w-full max-w-sm rounded-2xl shadow-2xl relative max-h-[85dvh] flex flex-col my-auto">
+                        <div className="p-4 overflow-y-auto">
                             <button
                                 onClick={() => setShowIOSPrompt(false)}
-                                className="absolute top-4 right-4 text-slate-400 hover:text-white z-10"
+                                className="absolute top-3 right-3 text-slate-400 hover:text-white z-10 p-1"
                             >
                                 <X className="w-5 h-5" />
                             </button>
 
-                            <div className="w-12 h-12 bg-yellow-500/10 rounded-xl flex items-center justify-center mb-4 mt-2">
-                                <Download className="w-6 h-6 text-yellow-400" />
+                            <div className="w-10 h-10 bg-yellow-500/10 rounded-xl flex items-center justify-center mb-3 mt-1 mx-auto">
+                                <Download className="w-5 h-5 text-yellow-400" />
                             </div>
 
-                            <h3 className="text-lg font-bold text-white mb-2">
+                            <h3 className="text-base font-bold text-white mb-1 text-center">
                                 ホーム画面に追加
                             </h3>
-                            <p className="text-sm text-slate-400 mb-5">
-                                アプリとしてインストールすると、全画面でより快適に利用できます。
-                                <br />
-                                <span className="text-yellow-500 text-xs mt-2 block">
+                            <p className="text-xs text-slate-400 mb-4 text-center">
+                                アプリとしてインストールすると、<br />全画面でより快適に利用できます。
+                                <span className="text-yellow-500 font-bold mt-1 block">
                                     ※Safariからのみインストール可能です
                                 </span>
                             </p>
 
-                            <div className="space-y-3">
-                                <div className="flex items-center gap-4 bg-slate-800/50 p-3 rounded-lg border border-slate-700/50">
-                                    <div className="w-8 h-8 flex items-center justify-center text-blue-400 shrink-0">
-                                        <Share className="w-6 h-6" />
+                            <div className="space-y-2 mb-4">
+                                <div className="flex items-center gap-3 bg-slate-800/50 p-2.5 rounded-lg border border-slate-700/50">
+                                    <div className="w-6 h-6 flex items-center justify-center text-blue-400 shrink-0">
+                                        <Share className="w-5 h-5" />
                                     </div>
-                                    <div className="text-sm text-slate-300">
+                                    <div className="text-xs text-slate-300">
                                         1. 画面下部の<span className="font-bold text-white mx-1">共有</span>ボタンをタップ
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-4 bg-slate-800/50 p-3 rounded-lg border border-slate-700/50">
-                                    <div className="w-8 h-8 flex items-center justify-center text-slate-200 shrink-0">
-                                        <PlusSquare className="w-6 h-6" />
+                                <div className="flex items-center gap-3 bg-slate-800/50 p-2.5 rounded-lg border border-slate-700/50">
+                                    <div className="w-6 h-6 flex items-center justify-center text-slate-200 shrink-0">
+                                        <PlusSquare className="w-5 h-5" />
                                     </div>
-                                    <div className="text-sm text-slate-300">
+                                    <div className="text-xs text-slate-300">
                                         2. <span className="font-bold text-white mx-1">ホーム画面に追加</span>を選択
                                     </div>
                                 </div>
@@ -129,13 +128,11 @@ export default function InstallPrompt() {
 
                             <button
                                 onClick={() => setShowIOSPrompt(false)}
-                                className="w-full mt-6 py-3 bg-yellow-500 hover:bg-yellow-400 text-black font-bold rounded-xl transition-colors"
+                                className="w-full py-2.5 bg-yellow-500 hover:bg-yellow-400 text-black font-bold rounded-lg transition-colors text-sm"
                             >
                                 閉じる
                             </button>
                         </div>
-
-                        {/* 吹き出しの矢印は削除（画面中央表示のため） */}
                     </div>
                 </div>
             )}
