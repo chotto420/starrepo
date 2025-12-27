@@ -15,6 +15,7 @@ import {
     X,
     Star
 } from "lucide-react";
+import InstallPrompt from "./InstallPrompt";
 
 export default function Header() {
     const pathname = usePathname();
@@ -116,6 +117,7 @@ export default function Header() {
 
                     {/* User Menu */}
                     <div className="hidden md:flex items-center gap-4">
+                        <InstallPrompt />
                         {user ? (
                             <>
                                 <Link href="/mypage" className="group flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-slate-800 transition-all">
@@ -154,17 +156,20 @@ export default function Header() {
                     </div>
 
                     {/* Mobile Menu Button */}
-                    <button
-                        onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                        className="md:hidden p-2 text-slate-400 hover:text-white transition-colors"
-                        aria-label="メニュー"
-                    >
-                        {mobileMenuOpen ? (
-                            <X className="w-6 h-6" />
-                        ) : (
-                            <Menu className="w-6 h-6" />
-                        )}
-                    </button>
+                    <div className="flex items-center gap-2 md:hidden">
+                        <InstallPrompt />
+                        <button
+                            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                            className="p-2 text-slate-400 hover:text-white transition-colors"
+                            aria-label="メニュー"
+                        >
+                            {mobileMenuOpen ? (
+                                <X className="w-6 h-6" />
+                            ) : (
+                                <Menu className="w-6 h-6" />
+                            )}
+                        </button>
+                    </div>
                 </div>
 
                 {/* Mobile Navigation */}
