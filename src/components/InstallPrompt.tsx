@@ -102,6 +102,10 @@ export default function InstallPrompt() {
                             </h3>
                             <p className="text-sm text-slate-400 mb-6">
                                 アプリとしてインストールすると、全画面でより快適に利用できます。
+                                <br />
+                                <span className="text-yellow-500 text-xs mt-2 block">
+                                    ※Safariからのみインストール可能です
+                                </span>
                             </p>
 
                             <div className="space-y-4">
