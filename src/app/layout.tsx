@@ -53,11 +53,15 @@ export const metadata: Metadata = {
     },
     icons: {
         icon: [
-            { url: '/favicon.png', type: 'image/png' },
-            { url: '/images/logo/logo_icon_transparent.png', sizes: 'any' },
+            { url: '/favicon.ico' },
+            { url: '/icon-32.png', type: 'image/png' },
+            { url: '/icon-48.png', sizes: '48x48', type: 'image/png' },
+            { url: '/icon-144.png', sizes: '144x144', type: 'image/png' },
         ],
-        apple: '/images/logo/logo_icon_transparent.png',
-        shortcut: '/favicon.png',
+        apple: [
+            { url: '/icon-144.png' },
+        ],
+        shortcut: '/favicon.ico',
     },
     alternates: {
         canonical: BASE_URL,
